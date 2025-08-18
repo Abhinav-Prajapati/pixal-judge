@@ -1,17 +1,16 @@
-# File: main.py
 """
 Main command-line interface for the image clustering application.
-Handles uploading, thumbnailing, feature extraction, and clustering via flags.
+Handles uploading, thumbnailing, feature extraction, and batch clustering via flags.
 """
 import argparse
 import uuid
 from pathlib import Path
 import torch
 import numpy as np
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 
-from database.database import init_db, get_db
-from database.models import Image, ClusteringResult
+from database.database import get_db
+from database.models import Image, ImageBatch
 from processing.feature_extraction import ImageFeatureExtractor
 from processing.clustering import ImageClusterer
 from utils.visualization import visualize_and_organize
@@ -63,70 +62,113 @@ def handle_create_embeddings(db: Session):
     db.commit()
     print("Embedding creation complete.")
 
-def handle_cluster(db: Session, args: argparse.Namespace):
-    """Handles the --cluster action."""
-    print("Starting clustering process...")
-    images_with_features = db.query(Image).filter(Image._features != None).options(joinedload(Image.results)).all()
+def handle_create_batch(db: Session, args: argparse.Namespace):
+    """Handles the --create_batch action, running a clustering process on specified image IDs."""
+    print(f"Creating new clustering batch named: '{args.name}'")
     
-    if not images_with_features:
-        print("No images with features found to cluster. Please run --create_embeddings first.")
-        return
-        
-    features_matrix = np.array([img.features for img in images_with_features])
-    image_paths = [img.file_path for img in images_with_features]
-    image_id_map = {img.id: img for img in images_with_features}
+    # 1. Fetch the specified images
+    image_ids = [int(id) for id in args.image_ids]
+    images_to_cluster = db.query(Image).filter(Image.id.in_(image_ids)).all()
 
+    # Validate that all requested images were found and have features
+    found_ids = {img.id for img in images_to_cluster}
+    missing_ids = set(image_ids) - found_ids
+    if missing_ids:
+        print(f"Error: Could not find images with the following IDs: {missing_ids}")
+        return
+
+    images_missing_features = [img for img in images_to_cluster if img.features is None]
+    if images_missing_features:
+        missing_ids = {img.id for img in images_missing_features}
+        print(f"Error: The following images are missing embeddings: {missing_ids}. Please run --create_embeddings first.")
+        return
+
+    # 2. Create and save the initial batch record
+    batch_params = {"eps": args.eps, "min_samples": args.min_samples, "metric": args.metric}
+    new_batch = ImageBatch(
+        batch_name=args.name,
+        image_ids=image_ids,
+        parameters=batch_params,
+        status='processing'
+    )
+    db.add(new_batch)
+    db.commit()
+    db.refresh(new_batch)
+
+    # 3. Prepare data and run clustering
+    features_matrix = np.array([img.features for img in images_to_cluster])
+    image_paths = [img.file_path for img in images_to_cluster]
+    
     clusterer = ImageClusterer(eps=args.eps, min_samples=args.min_samples, metric=args.metric)
     labels = clusterer.fit_predict(features_matrix)
-    
-    run_id = str(uuid.uuid4())
-    print(f"Saving results for run_id: {run_id}")
-    for image, label in zip(images_with_features, labels):
-        result = ClusteringResult(
-            run_id=run_id,
-            image_id=image.id,
-            cluster_label=int(label)
-        )
-        db.add(result)
+
+    # 4. Create the cluster summary JSON
+    stats = clusterer.get_cluster_stats()
+    cluster_map = {str(label): [] for label in set(labels)}
+    for image, label in zip(images_to_cluster, labels):
+        cluster_map[str(label)].append(image.id)
+
+    summary_json = {
+        "batch_id": new_batch.id,
+        "total_images": stats['n_samples'],
+        "clusters_found": stats['n_clusters'],
+        "noise_points": stats['n_noise'],
+        "cluster_map": cluster_map
+    }
+
+    # 5. Update the batch record with the results
+    new_batch.cluster_summary = summary_json
+    new_batch.status = 'complete'
     db.commit()
-    
+
+    # 6. Visualize and organize files
     visualize_and_organize(features_matrix, labels, image_paths, args.output_dir)
-    print(f"\nClustering complete. Results saved to {args.output_dir}/")
+    print(f"\nBatch '{args.name}' created and clustering complete.")
+    print(f"Results saved to {args.output_dir}/")
 
 def main():
     """Main function to parse arguments and dispatch actions."""
     parser = argparse.ArgumentParser(description='CLI for Image Clustering Application')
-    parser.add_argument('--upload', type=str, help='Path to an image or a directory of images to upload.')
-    parser.add_argument('--create_thumbnails', action='store_true', help='Create thumbnails for all images missing them.')
-    parser.add_argument('--create_embeddings', action='store_true', help='Create feature embeddings for all images missing them.')
-    parser.add_argument('--cluster', action='store_true', help='Run the clustering process on all images with embeddings.')
     
-    # Clustering specific arguments
-    parser.add_argument('--output_dir', type=str, default='clustering_results', help='Output directory for clustering results.')
-    parser.add_argument('--eps', type=float, default=0.3, help='DBSCAN eps parameter.')
-    parser.add_argument('--min_samples', type=int, default=2, help='DBSCAN min_samples parameter.')
-    parser.add_argument('--metric', type=str, default='cosine', choices=['cosine', 'euclidean'], help='Distance metric for clustering.')
+    # Subparsers for different commands
+    subparsers = parser.add_subparsers(dest='command', help='Available commands')
+
+    # Upload command
+    parser_upload = subparsers.add_parser('upload', help='Upload an image or a directory of images.')
+    parser_upload.add_argument('path', type=str, help='Path to the image or directory.')
+
+    # Thumbnails command
+    subparsers.add_parser('create_thumbnails', help='Create thumbnails for all images missing them.')
+
+    # Embeddings command
+    subparsers.add_parser('create_embeddings', help='Create feature embeddings for all images missing them.')
+
+    # Batch command
+    parser_batch = subparsers.add_parser('create_batch', help='Run a new clustering process on a set of images.')
+    parser_batch.add_argument('--name', type=str, required=True, help='A name for this clustering batch.')
+    parser_batch.add_argument('--image_ids', type=int, nargs='+', required=True, help='A space-separated list of image IDs to cluster.')
+    parser_batch.add_argument('--output_dir', type=str, default='clustering_results', help='Output directory for results.')
+    parser_batch.add_argument('--eps', type=float, default=0.3, help='DBSCAN eps parameter.')
+    parser_batch.add_argument('--min_samples', type=int, default=2, help='DBSCAN min_samples parameter.')
+    parser_batch.add_argument('--metric', type=str, default='cosine', choices=['cosine', 'euclidean'], help='Distance metric.')
     
     args = parser.parse_args()
 
     # Setup
-    init_db()
     setup_directories()
     db_session_gen = get_db()
     db = next(db_session_gen)
 
     try:
-        if args.upload:
-            handle_upload(db, args.upload)
-        if args.create_thumbnails:
+        if args.command == 'upload':
+            handle_upload(db, args.path)
+        elif args.command == 'create_thumbnails':
             handle_create_thumbnails(db)
-        if args.create_embeddings:
+        elif args.command == 'create_embeddings':
             handle_create_embeddings(db)
-        if args.cluster:
-            handle_cluster(db, args)
-        
-        # If no action is specified, show help
-        if not any([args.upload, args.create_thumbnails, args.create_embeddings, args.cluster]):
+        elif args.command == 'create_batch':
+            handle_create_batch(db, args)
+        else:
             parser.print_help()
     finally:
         db.close()
