@@ -17,6 +17,7 @@ def setup_directories():
 def save_image_from_path(source_path: Path, db: Session) -> ImageModel:
     """Copies an image from a local path to the assets folder and creates a DB record."""
     try:
+        print( "fuck u python ",source_path.name)
         file_extension = source_path.suffix
         unique_filename = f"{uuid.uuid4()}{file_extension}"
         image_path = IMAGE_DIR / unique_filename
