@@ -1,9 +1,16 @@
 """
 Main FastAPI application file.
-Initializes the app and includes the API routers.
+Initializes the app, includes the API routers, and sets up logging.
 """
+import logging
 from fastapi import FastAPI
 from . import image_routes, cluster_routes
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 app = FastAPI(
     title="Image Clustering API",

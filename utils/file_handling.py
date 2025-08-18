@@ -3,50 +3,53 @@ Handles all file system operations like saving, deleting, and thumbnailing image
 """
 import shutil
 import uuid
+import logging
 from pathlib import Path
+from fastapi import UploadFile
 from PIL import Image, ImageOps
 from sqlalchemy.orm import Session
 from database.models import Image as ImageModel
 from config import IMAGE_DIR, THUMB_DIR, THUMB_SIZES
+
+logger = logging.getLogger(__name__)
 
 def setup_directories():
     """Creates the necessary asset directories if they don't exist."""
     IMAGE_DIR.mkdir(parents=True, exist_ok=True)
     THUMB_DIR.mkdir(parents=True, exist_ok=True)
 
-def save_image_from_path(source_path: Path, db: Session) -> ImageModel:
-    """Copies an image from a local path to the assets folder and creates a DB record."""
+def save_uploaded_file(file: UploadFile, db: Session) -> ImageModel:
+    """Saves an uploaded file directly to the assets folder and creates a DB record."""
     try:
-        print( "fuck u python ",source_path.name)
-        file_extension = source_path.suffix
+        file_extension = Path(file.filename).suffix
         unique_filename = f"{uuid.uuid4()}{file_extension}"
         image_path = IMAGE_DIR / unique_filename
-        
-        shutil.copy2(source_path, image_path)
+
+        # Stream the file content directly to the final destination
+        with open(image_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
 
         new_image = ImageModel(
             filename=unique_filename,
-            original_filename=source_path.name,
+            original_filename=file.filename,
             file_path=str(image_path),
             file_size=image_path.stat().st_size,
-            mime_type=f"image/{file_extension.strip('.')}"
+            mime_type=file.content_type
         )
         db.add(new_image)
         db.commit()
         db.refresh(new_image)
-        print(f"Successfully saved image: {source_path.name} as {unique_filename}")
+        logger.info(f"Successfully saved uploaded file: {file.filename} as {unique_filename}")
         return new_image
     except Exception as e:
         db.rollback()
-        print(f"Failed to save file {source_path.name}: {e}")
+        logger.error(f"Failed to save uploaded file {file.filename}: {e}")
         raise
 
 def create_thumbnail(image_record: ImageModel):
-    """
-    Creates a thumbnail for an image, applying orientation-specific dimensions.
-    """
+    """Creates a thumbnail for an image, applying orientation-specific dimensions."""
     if image_record.has_thumbnail:
-        print(f"Thumbnail already exists for {image_record.filename}")
+        logger.info(f"Thumbnail already exists for {image_record.filename}")
         return
 
     image_path = Path(image_record.file_path)
@@ -54,16 +57,12 @@ def create_thumbnail(image_record: ImageModel):
 
     try:
         with Image.open(image_path) as img:
-            # First, auto-correct orientation using EXIF data
             img = ImageOps.exif_transpose(img)
 
-            # Determine if the (corrected) image is landscape or portrait
             if img.width > img.height:
-                # It's a landscape image
-                target_size = (THUMB_SIZES["landscape"]["height"], THUMB_SIZES["landscape"]["width"])
+                target_size = (THUMB_SIZES["landscape"]["width"], THUMB_SIZES["landscape"]["height"])
             else:
-                # It's a portrait or square image
-                target_size = (THUMB_SIZES["portrait"]["height"], THUMB_SIZES["portrait"]["width"])
+                target_size = (THUMB_SIZES["portrait"]["width"], THUMB_SIZES["portrait"]["height"])
 
             thumb = img.resize(target_size, Image.Resampling.LANCZOS)
 
@@ -72,8 +71,8 @@ def create_thumbnail(image_record: ImageModel):
 
             thumb.save(thumb_path, "JPEG", quality=85)
 
-        #image_record.has_thumbnail = True
-        print(f"Created thumbnail for {image_record.filename}")
+        image_record.has_thumbnail = True
+        logger.info(f"Created thumbnail for {image_record.filename}")
 
     except Exception as e:
-        print(f"Failed to create thumbnail for {image_path}: {e}")
+        logger.error(f"Failed to create thumbnail for {image_path}: {e}")
