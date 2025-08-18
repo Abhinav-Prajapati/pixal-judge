@@ -79,3 +79,22 @@ def create_thumbnail(image_record: ImageModel):
 
     except Exception as e:
         print(f"Failed to create thumbnail for {image_path}: {e}")
+
+def delete_image_files(image_record: ImageModel) -> bool:
+    """Deletes the physical image and thumbnail files from the disk."""
+    try:
+        image_path = Path(image_record.file_path)
+        thumb_path = THUMB_DIR / image_record.filename
+
+        if image_path.exists():
+            image_path.unlink()
+            logger.info(f"Deleted image file: {image_path}")
+
+        if thumb_path.exists():
+            thumb_path.unlink()
+            logger.info(f"Deleted thumbnail file: {thumb_path}")
+            
+        return True
+    except Exception as e:
+        logger.error(f"Error deleting files for image ID {image_record.id}: {e}")
+        return False
