@@ -59,15 +59,12 @@ def create_thumbnail(image_record: ImageModel):
 
     try:
         with Image.open(image_path) as img:
-            # First, auto-correct orientation using EXIF data
+            # auto-correct orientation using EXIF data
             img = ImageOps.exif_transpose(img)
 
-            # Determine if the (corrected) image is landscape or portrait
             if img.width > img.height:
-                # It's a landscape image
                 target_size = (THUMB_SIZES["landscape"]["height"], THUMB_SIZES["landscape"]["width"])
             else:
-                # It's a portrait or square image
                 target_size = (THUMB_SIZES["portrait"]["height"], THUMB_SIZES["portrait"]["width"])
 
             thumb = img.resize(target_size, Image.Resampling.LANCZOS)
