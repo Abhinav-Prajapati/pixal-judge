@@ -47,9 +47,11 @@ def save_uploaded_file(file: UploadFile, db: Session) -> ImageModel:
         raise
 
 def create_thumbnail(image_record: ImageModel):
-    """Creates a thumbnail for an image, applying orientation-specific dimensions."""
+    """
+    Creates a thumbnail for an image, applying orientation-specific dimensions.
+    """
     if image_record.has_thumbnail:
-        logger.info(f"Thumbnail already exists for {image_record.filename}")
+        print(f"Thumbnail already exists for {image_record.filename}")
         return
 
     image_path = Path(image_record.file_path)
@@ -57,12 +59,16 @@ def create_thumbnail(image_record: ImageModel):
 
     try:
         with Image.open(image_path) as img:
+            # First, auto-correct orientation using EXIF data
             img = ImageOps.exif_transpose(img)
 
+            # Determine if the (corrected) image is landscape or portrait
             if img.width > img.height:
-                target_size = (THUMB_SIZES["landscape"]["width"], THUMB_SIZES["landscape"]["height"])
+                # It's a landscape image
+                target_size = (THUMB_SIZES["landscape"]["height"], THUMB_SIZES["landscape"]["width"])
             else:
-                target_size = (THUMB_SIZES["portrait"]["width"], THUMB_SIZES["portrait"]["height"])
+                # It's a portrait or square image
+                target_size = (THUMB_SIZES["portrait"]["height"], THUMB_SIZES["portrait"]["width"])
 
             thumb = img.resize(target_size, Image.Resampling.LANCZOS)
 
@@ -72,7 +78,7 @@ def create_thumbnail(image_record: ImageModel):
             thumb.save(thumb_path, "JPEG", quality=85)
 
         image_record.has_thumbnail = True
-        logger.info(f"Created thumbnail for {image_record.filename}")
+        print(f"Created thumbnail for {image_record.filename}")
 
     except Exception as e:
-        logger.error(f"Failed to create thumbnail for {image_path}: {e}")
+        print(f"Failed to create thumbnail for {image_path}: {e}")
