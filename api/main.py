@@ -4,6 +4,7 @@ Initializes the app, includes the API routers, and sets up logging.
 """
 import logging
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from . import image_routes, cluster_routes
 
 logging.basicConfig(
@@ -18,7 +19,19 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Include the routers from other modules
+origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"], # Allows all methods
+    allow_headers=["*"], # Allows all headers
+)
+
 app.include_router(image_routes.router)
 app.include_router(cluster_routes.router)
 
