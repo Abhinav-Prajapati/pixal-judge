@@ -2,58 +2,70 @@
   File: app/page.tsx
 
   This is a Next.js client component that displays an image gallery and
-  includes a form to upload new images.
+  includes a form to upload new images with toast notifications.
 */
 "use client";
 
 import { useState, useEffect, useCallback, FormEvent } from "react";
 import { OpenAPI, ImagesService, ImageResponse } from "@/api";
+import toast, { Toaster } from 'react-hot-toast';
 
 // IMPORTANT: Configure the base URL of your running FastAPI backend.
 OpenAPI.BASE = "http://127.0.0.1:8000";
 
 
-// A dedicated component for handling file uploads
+// A dedicated component for handling file uploads with toast notifications
 function ImageUploader({ onUploadSuccess }: { onUploadSuccess: () => void }) {
   const [files, setFiles] = useState<FileList | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
-  const [message, setMessage] = useState<string>('');
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFiles(e.target.files);
-    setMessage('');
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!files || files.length === 0) {
-      setMessage('Please select at least one file to upload.');
+      toast.error('Please select at least one file to upload.');
       return;
     }
 
     setIsUploading(true);
-    setMessage(`Uploading ${files.length} file(s)...`);
+    const toastId = toast.loading(`Uploading ${files.length} file(s)...`);
 
     try {
-      // The generated service expects an object with a `files` property which is an array of Blobs/Files.
-      await ImagesService.uploadImagesImagesUploadPost({
+      const response = await ImagesService.uploadImagesImagesUploadPost({
         files: Array.from(files),
       });
-      
-      setMessage('Upload successful! Refreshing gallery...');
-      setFiles(null); // Reset file input
-      (document.getElementById('file-input') as HTMLInputElement).value = ''; // Clear the file input visually
-      
-      // Notify the parent component to refresh the image list
+
+      const newImages = response.filter(img => !img.is_duplicate);
+      const duplicateImages = response.filter(img => img.is_duplicate);
+
+      // 1. Update the loading toast ONLY for new images, or dismiss it
+      if (newImages.length > 0) {
+        toast.success(`Successfully uploaded ${newImages.length} new image(s)!`, { id: toastId });
+      } else {
+        toast.dismiss(toastId);
+      }
+
+      // 2. Show a NEW, separate toast for each duplicate found
+      duplicateImages.forEach(image => {
+        toast(image.message || `Duplicate: ${image.original_filename}`, {
+          icon: '⚠️',
+          duration: 5000
+        });
+      });
+
+      setFiles(null);
+      (document.getElementById('file-input') as HTMLInputElement).value = '';
+
       onUploadSuccess();
 
     } catch (error) {
       console.error("Upload failed:", error);
-      setMessage('Upload failed. Please check the console for details.');
+      toast.error('Upload failed. Please check the console.', { id: toastId });
     } finally {
       setIsUploading(false);
-      // Clear success message after a few seconds
-      setTimeout(() => setMessage(''), 3000);
     }
   };
 
@@ -77,7 +89,6 @@ function ImageUploader({ onUploadSuccess }: { onUploadSuccess: () => void }) {
             {isUploading ? 'Uploading...' : 'Upload'}
           </button>
         </div>
-        {message && <p className="mt-4 text-sm text-gray-600">{message}</p>}
       </form>
     </div>
   );
@@ -89,7 +100,6 @@ export default function ImageGalleryPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Use useCallback to memoize the fetch function
   const fetchImages = useCallback(() => {
     setLoading(true);
     ImagesService.getAllImagesImagesGet()
@@ -105,13 +115,14 @@ export default function ImageGalleryPage() {
       });
   }, []);
 
-  // Fetch images on initial component mount
   useEffect(() => {
     fetchImages();
   }, [fetchImages]);
 
   return (
     <main className="min-h-screen bg-gray-50 font-sans text-gray-800">
+      {/* UPDATE: Changed toast position to bottom-right */}
+      <Toaster position="bottom-right" reverseOrder={false} />
       <div className="container mx-auto px-4 py-8">
         <header className="text-center mb-8">
           <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">
@@ -122,7 +133,6 @@ export default function ImageGalleryPage() {
           </p>
         </header>
 
-        {/* Add the uploader component here */}
         <ImageUploader onUploadSuccess={fetchImages} />
 
         {loading ? (
