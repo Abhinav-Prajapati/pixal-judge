@@ -1,35 +1,45 @@
 /*
   File: app/batches/page.tsx
   This is a client component for managing clustering batches. It allows users
-  to view existing batches and create new ones via a modal.
+  to view existing batches and create new ones via a modal, styled with DaisyUI.
 */
 "use client";
 
-import { useState, useEffect, FormEvent, useCallback } from 'react';
+import { useState, useEffect, FormEvent, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { OpenAPI, ClusteringBatchesService, ImagesService, BatchResponse, ImageResponse } from '../../api';
 
 // Configure the base URL for the API
 OpenAPI.BASE = "http://127.0.0.1:8000";
 
-// --- Modal Component for Creating a New Batch ---
-function CreateBatchModal({ isOpen, onClose, onBatchCreated }: { isOpen: boolean; onClose: () => void; onBatchCreated: () => void; }) {
+// --- DaisyUI Modal Component for Creating a New Batch ---
+function CreateBatchModal({ modalId, onBatchCreated }: { modalId: string; onBatchCreated: () => void; }) {
   const [allImages, setAllImages] = useState<ImageResponse[]>([]);
   const [selectedImageIds, setSelectedImageIds] = useState<Set<number>>(new Set());
   const [batchName, setBatchName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
+  // Fetch images only when the dialog is actually opened
   useEffect(() => {
-    if (isOpen) {
-      // Fetch all images when the modal is opened
-      setIsLoading(true);
-      ImagesService.getAllImagesImagesGet()
-        .then(setAllImages)
-        .catch(() => setError("Failed to load images for selection."))
-        .finally(() => setIsLoading(false));
+    const dialog = dialogRef.current;
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'open' && dialog?.open && allImages.length === 0) {
+          setIsLoading(true);
+          ImagesService.getAllImagesImagesGet()
+            .then(setAllImages)
+            .catch(() => setError("Failed to load images for selection."))
+            .finally(() => setIsLoading(false));
+        }
+      });
+    });
+    if (dialog) {
+      observer.observe(dialog, { attributes: true });
     }
-  }, [isOpen]);
+    return () => observer.disconnect();
+  }, [allImages.length]);
 
   const handleImageSelect = (imageId: number) => {
     setSelectedImageIds(prev => {
@@ -43,9 +53,20 @@ function CreateBatchModal({ isOpen, onClose, onBatchCreated }: { isOpen: boolean
     });
   };
 
+  const resetState = () => {
+    setBatchName('');
+    setSelectedImageIds(new Set());
+    setError(null);
+  };
+  
+  const handleClose = () => {
+    resetState();
+    dialogRef.current?.close();
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!batchName || selectedImageIds.size === 0) {
+    if (!batchName.trim() || selectedImageIds.size === 0) {
       setError("Please provide a batch name and select at least one image.");
       return;
     }
@@ -56,8 +77,8 @@ function CreateBatchModal({ isOpen, onClose, onBatchCreated }: { isOpen: boolean
         name: batchName,
         image_ids: Array.from(selectedImageIds),
       });
-      onBatchCreated(); // Refresh the list on the main page
-      onClose(); // Close the modal
+      onBatchCreated(); 
+      handleClose();
     } catch (err) {
       setError("Failed to create batch. Please try again.");
       console.error(err);
@@ -66,52 +87,55 @@ function CreateBatchModal({ isOpen, onClose, onBatchCreated }: { isOpen: boolean
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <h2 className="text-2xl font-bold mb-4">Create New Batch</h2>
-        <form onSubmit={handleSubmit} className="flex flex-col flex-grow min-h-0">
-          <input
-            type="text"
-            placeholder="Enter Batch Name"
-            value={batchName}
-            onChange={(e) => setBatchName(e.target.value)}
-            className="w-full p-2 border rounded-md mb-4"
-          />
+    <dialog id={modalId} ref={dialogRef} className="modal">
+      <div className="modal-box w-11/12 max-w-3xl max-h-[90vh] flex flex-col">
+        <h3 className="font-bold text-2xl">Create New Batch</h3>
+        <form onSubmit={handleSubmit} className="flex flex-col flex-grow min-h-0 py-4">
+          <div className="form-control">
+            <input
+              type="text"
+              placeholder="Enter Batch Name"
+              value={batchName}
+              onChange={(e) => setBatchName(e.target.value)}
+              className="input input-bordered w-full mb-4"
+            />
+          </div>
           <p className="mb-2 font-semibold">Select Images ({selectedImageIds.size} selected)</p>
-          <div className="flex-grow border rounded-md p-2 overflow-y-auto">
-            {isLoading && <p>Loading images...</p>}
+          <div className="flex-grow border border-base-300 bg-base-200 rounded-lg p-2 overflow-y-auto">
+            {isLoading && <div className="flex justify-center p-4"><span className="loading loading-spinner"></span></div>}
             <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
               {allImages.map(img => (
-                <div key={img.id} onClick={() => handleImageSelect(img.id)} className={`relative aspect-square rounded-md overflow-hidden cursor-pointer border-4 ${selectedImageIds.has(img.id) ? 'border-indigo-500' : 'border-transparent'}`}>
+                <div key={img.id} onClick={() => handleImageSelect(img.id)} className={`relative aspect-square rounded-md overflow-hidden cursor-pointer ring-offset-base-100 ring-offset-2 ${selectedImageIds.has(img.id) ? 'ring-2 ring-primary' : ''}`}>
                   <img src={`${OpenAPI.BASE}/images/thumbnail/${img.id}`} alt={img.original_filename} className="h-full w-full object-cover" />
-                  {selectedImageIds.has(img.id) && <div className="absolute inset-0 bg-black bg-opacity-40"></div>}
+                  {selectedImageIds.has(img.id) && <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center text-white">✓</div>}
                 </div>
               ))}
             </div>
           </div>
-          {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
-          <div className="mt-4 flex justify-end gap-4">
-            <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-md">Cancel</button>
-            <button type="submit" disabled={isLoading} className="px-4 py-2 bg-indigo-600 text-white rounded-md disabled:bg-gray-400">
+          {error && <p className="text-error text-sm mt-2">{error}</p>}
+          <div className="modal-action mt-4">
+            <button type="button" onClick={handleClose} className="btn">Cancel</button>
+            <button type="submit" disabled={isLoading} className="btn btn-primary">
+              {isLoading && <span className="loading loading-spinner"></span>}
               {isLoading ? 'Creating...' : 'Create Batch'}
             </button>
           </div>
         </form>
       </div>
-    </div>
+       <form method="dialog" className="modal-backdrop">
+          <button onClick={handleClose}>close</button>
+       </form>
+    </dialog>
   );
 }
-
 
 // --- Main Batches Page Component ---
 export default function BatchesPage() {
   const [batches, setBatches] = useState<BatchResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const modalId = "create_batch_modal";
 
   const fetchBatches = useCallback(() => {
     setLoading(true);
@@ -128,51 +152,69 @@ export default function BatchesPage() {
     fetchBatches();
   }, [fetchBatches]);
 
+  const renderContent = () => {
+    if (loading) {
+      return <div className="text-center py-12"><span className="loading loading-spinner loading-lg"></span></div>;
+    }
+
+    if (error) {
+      return (
+        <div role="alert" className="alert alert-error">
+          <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <div><h3 className="font-bold">An Error Occurred</h3><div className="text-xs">{error}</div></div>
+        </div>
+      );
+    }
+
+    if (batches.length > 0) {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {batches.map(batch => (
+            <Link key={batch.id} href={`/batches/${batch.id}`} className="card bg-base-100 shadow-md hover:shadow-xl transition-shadow duration-300">
+              <div className="card-body">
+                <h2 className="card-title text-primary">{batch.batch_name}</h2>
+                <p className="text-sm text-base-content text-opacity-60 -mt-2">ID: {batch.id}</p>
+                <div className="card-actions justify-between items-center mt-4">
+                  <div className="text-base-content">{batch.image_ids.length} images</div>
+                  <div className={`badge ${batch.status === 'complete' ? 'badge-success' : 'badge-warning'}`}>
+                    {batch.status}
+                  </div>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      );
+    }
+
+    return (
+       <div className="text-center py-12 hero bg-base-200 rounded-lg">
+         <div className="hero-content text-center">
+            <div className="max-w-md">
+                <h1 className="text-3xl font-bold">No Batches Found</h1>
+                <p className="py-6">Create your first batch to start analyzing image clusters.</p>
+                <button className="btn btn-primary" onClick={() => (document.getElementById(modalId) as HTMLDialogElement)?.showModal()}>Get Started</button>
+            </div>
+         </div>
+       </div>
+    );
+  };
+
   return (
-    <main className="min-h-screen bg-gray-50 font-sans text-gray-800">
-      <CreateBatchModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onBatchCreated={fetchBatches}
-      />
+    <>
+      <CreateBatchModal modalId={modalId} onBatchCreated={fetchBatches} />
       <div className="container mx-auto px-4 py-8">
         <header className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Clustering Batches</h1>
-            <p className="mt-2 text-lg text-gray-600">Manage and analyze your image batches.</p>
+            <h1 className="text-4xl font-extrabold tracking-tight">Clustering Batches</h1>
+            <p className="mt-2 text-lg text-base-content text-opacity-70">Manage and analyze your image batches.</p>
           </div>
-          <button onClick={() => setIsModalOpen(true)} className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-full hover:bg-indigo-700 transition-colors">
+          <button onClick={() => (document.getElementById(modalId) as HTMLDialogElement)?.showModal()} className="btn btn-primary">
             Create New Batch
           </button>
         </header>
-
-        {loading ? (
-          <div className="text-center py-12"><p className="text-xl text-gray-500">Loading batches...</p></div>
-        ) : error ? (
-          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md shadow-md">
-            <p className="font-bold">An Error Occurred</p><p>{error}</p>
-          </div>
-        ) : batches.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {batches.map(batch => (
-              <Link key={batch.id} href={`/batches/${batch.id}`}>
-                <div className="block bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
-                  <h3 className="text-xl font-bold text-indigo-600">{batch.batch_name}</h3>
-                  <p className="text-sm text-gray-500 mt-1">ID: {batch.id}</p>
-                  <div className="mt-4 flex justify-between items-center">
-                    <span className="text-gray-700">{batch.image_ids.length} images</span>
-                    <span className={`px-3 py-1 text-xs font-semibold rounded-full ${batch.status === 'complete' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                      {batch.status}
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12"><p className="text-xl text-gray-500">No batches found. Create one to get started!</p></div>
-        )}
+        {renderContent()}
       </div>
-    </main>
+    </>
   );
 }
