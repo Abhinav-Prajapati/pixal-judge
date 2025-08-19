@@ -140,7 +140,6 @@ def update_clusters(
     if not batch:
         raise HTTPException(status_code=404, detail="Batch not found.")
 
-    # --- Validation Step (This part is correct) ---
     batch_image_ids = set(batch.image_ids)
     incoming_image_ids = set()
     for image_list in cluster_data.cluster_map.values():
@@ -154,11 +153,9 @@ def update_clusters(
             detail="The provided cluster map must contain exactly the same set of images as the batch."
         )
 
-    # --- CORRECTED UPDATE LOGIC ---
     if batch.cluster_summary is None:
         batch.cluster_summary = {}
 
-    # Modify the existing summary dictionary
     batch.cluster_summary['cluster_map'] = cluster_data.cluster_map
     batch.cluster_summary['total_images'] = len(batch_image_ids)
     batch.cluster_summary['clusters_found'] = len(cluster_data.cluster_map)
