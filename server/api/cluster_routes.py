@@ -6,7 +6,8 @@ from typing import List
 from database.database import get_db
 from database.models import Image, ImageBatch
 from processing.clustering import ImageClusterer
-from .schemas import BatchCreate, BatchAnalyze, BatchUpdateImages, BatchResponse
+from .schemas import BatchCreate, BatchAnalyze, BatchUpdateImages, BatchResponse, BatchClusterUpdate
+from sqlalchemy.orm.attributes import flag_modified
 
 router = APIRouter(
     prefix="/batches",
@@ -119,6 +120,56 @@ def analyze_batch(batch_id: int, analysis_params: BatchAnalyze, db: Session = De
     
     batch.cluster_summary = summary_json
     batch.status = 'complete'
+    db.commit()
+    db.refresh(batch)
+    
+    return batch
+
+@router.put("/{batch_id}/clusters", response_model=BatchResponse)
+def update_clusters(
+    batch_id: int,
+    cluster_data: BatchClusterUpdate,
+    db: Session = Depends(get_db)
+):
+    """
+    Manually updates the cluster assignments for a batch.
+    Validates that the new cluster map contains the exact same set of images
+    as the batch itself.
+    """
+    batch = db.query(ImageBatch).filter(ImageBatch.id == batch_id).first()
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch not found.")
+
+    # --- Validation Step (This part is correct) ---
+    batch_image_ids = set(batch.image_ids)
+    incoming_image_ids = set()
+    for image_list in cluster_data.cluster_map.values():
+        if len(image_list) != len(set(image_list)):
+            raise HTTPException(status_code=400, detail="Duplicate image IDs found within a single cluster.")
+        incoming_image_ids.update(image_list)
+
+    if batch_image_ids != incoming_image_ids:
+        raise HTTPException(
+            status_code=400,
+            detail="The provided cluster map must contain exactly the same set of images as the batch."
+        )
+
+    # --- CORRECTED UPDATE LOGIC ---
+    if batch.cluster_summary is None:
+        batch.cluster_summary = {}
+
+    # Modify the existing summary dictionary
+    batch.cluster_summary['cluster_map'] = cluster_data.cluster_map
+    batch.cluster_summary['total_images'] = len(batch_image_ids)
+    batch.cluster_summary['clusters_found'] = len(cluster_data.cluster_map)
+    batch.cluster_summary['noise_points'] = len(cluster_data.cluster_map.get('-1', []))
+    batch.cluster_summary['note'] = "Manually updated"
+
+    # Explicitly mark the JSON field as modified for the session
+    flag_modified(batch, "cluster_summary")
+
+    batch.status = 'complete'
+    
     db.commit()
     db.refresh(batch)
     

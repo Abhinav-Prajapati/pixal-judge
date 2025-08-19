@@ -39,3 +39,7 @@ class BatchResponse(BaseModel):
     parameters: Dict[str, Any] | None
     cluster_summary: Dict[str, Any] | None
     model_config = ConfigDict(from_attributes=True)
+
+class BatchClusterUpdate(BaseModel):
+    """Schema for manually updating a batch's cluster map."""
+    cluster_map: Dict[str, List[int]]
