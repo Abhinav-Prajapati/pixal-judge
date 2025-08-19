@@ -2,22 +2,23 @@
   File: app/page.tsx
 
   This is a Next.js client component that displays an image gallery and
-  includes a form to upload new images with toast notifications.
+  includes a modal to upload new images with toast notifications.
 */
 "use client";
 
-import { useState, useEffect, useCallback, FormEvent, SyntheticEvent } from "react";
+import { useState, useEffect, useCallback, FormEvent, SyntheticEvent, useRef } from "react";
 import { OpenAPI, ImagesService, ImageResponse } from "@/api";
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 
 // IMPORTANT: Configure the base URL of your running FastAPI backend.
 OpenAPI.BASE = "http://127.0.0.1:8000";
 
 
-// A dedicated component for handling file uploads with toast notifications
-function ImageUploader({ onUploadSuccess }: { onUploadSuccess: () => void }) {
+// --- UPLOAD MODAL ---
+function ImageUploaderModal({ modalId, onUploadSuccess }: { modalId: string, onUploadSuccess: () => void }) {
   const [files, setFiles] = useState<FileList | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFiles(e.target.files);
@@ -48,15 +49,15 @@ function ImageUploader({ onUploadSuccess }: { onUploadSuccess: () => void }) {
       }
 
       duplicateImages.forEach(image => {
-        toast(image.message || `Duplicate: ${image.original_filename}`, {
-          icon: '⚠️',
-          duration: 5000
-        });
+        toast(image.message || `Duplicate: ${image.original_filename}`, { icon: '⚠️', duration: 5000 });
       });
 
       setFiles(null);
-      (document.getElementById('file-input') as HTMLInputElement).value = '';
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
       onUploadSuccess();
+      (document.getElementById(modalId) as HTMLDialogElement)?.close();
 
     } catch (error) {
       console.error("Upload failed:", error);
@@ -67,37 +68,48 @@ function ImageUploader({ onUploadSuccess }: { onUploadSuccess: () => void }) {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-      <form onSubmit={handleSubmit}>
-        <h2 className="text-2xl font-bold mb-4 text-gray-800">Upload New Images</h2>
-        <div className="flex flex-col sm:flex-row items-center gap-4">
-          <input
-            id="file-input"
-            type="file"
-            multiple
-            onChange={handleFileChange}
-            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-          />
-          <button
-            type="submit"
-            disabled={isUploading || !files || files.length === 0}
-            className="w-full sm:w-auto px-6 py-2 bg-indigo-600 text-white font-semibold rounded-full hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-          >
-            {isUploading ? 'Uploading...' : 'Upload'}
-          </button>
-        </div>
-      </form>
-    </div>
+    <dialog id={modalId} className="modal">
+      <div className="modal-box">
+        <h3 className="font-bold text-2xl mb-4">Upload New Images</h3>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="form-control">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              onChange={handleFileChange}
+              className="file-input file-input-bordered file-input-primary w-full"
+            />
+          </div>
+          <div className="modal-action">
+             <button type="button" className="btn" onClick={() => (document.getElementById(modalId) as HTMLDialogElement)?.close()}>Cancel</button>
+            <button
+              type="submit"
+              disabled={isUploading || !files || files.length === 0}
+              className="btn btn-primary"
+            >
+              {isUploading && <span className="loading loading-spinner"></span>}
+              {isUploading ? 'Uploading...' : 'Upload'}
+            </button>
+          </div>
+        </form>
+      </div>
+       <form method="dialog" className="modal-backdrop">
+         <button>close</button>
+       </form>
+    </dialog>
   );
 }
 
-// UPDATE: New component to handle individual image loading and styling
+
+// --- GALLERY IMAGE (Original Styling) ---
 function GalleryImage({ image }: { image: ImageResponse }) {
   // State to hold the calculated style for the container
   const [containerStyle, setContainerStyle] = useState<React.CSSProperties>({
     width: '150px', // Start with a default placeholder width
     height: '200px',
-    opacity: 0,     // Start hidden
+    opacity: 0,      // Start hidden
+    backgroundColor: '#e5e7eb' // Placeholder color
   });
 
   // This function runs when the image has finished loading
@@ -121,8 +133,8 @@ function GalleryImage({ image }: { image: ImageResponse }) {
       <img
         src={`${OpenAPI.BASE}/images/thumbnail/${image.id}`}
         alt={image.original_filename}
-        onLoad={handleImageLoad} // <-- This is the key part
-        className="h-full w-full object-cover transition-opacity duration-300 group-hover:opacity-90"
+        onLoad={handleImageLoad}
+        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
         onError={(e) => {
           (e.target as HTMLImageElement).src = 'https://placehold.co/400x400/eee/ccc?text=Error';
         }}
@@ -135,16 +147,19 @@ function GalleryImage({ image }: { image: ImageResponse }) {
 }
 
 
+// --- MAIN PAGE COMPONENT ---
 export default function ImageGalleryPage() {
   const [images, setImages] = useState<ImageResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const uploadModalId = "upload_modal";
 
   const fetchImages = useCallback(() => {
     setLoading(true);
     ImagesService.getAllImagesImagesGet()
       .then(data => {
         setImages(data);
+        setError(null);
       })
       .catch(e => {
         console.error("Failed to fetch images:", e);
@@ -159,45 +174,56 @@ export default function ImageGalleryPage() {
     fetchImages();
   }, [fetchImages]);
 
-  // UPDATE: Removed the `getImageStyle` function as this logic is now in the `GalleryImage` component.
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="flex justify-center items-center h-96">
+          <span className="loading loading-spinner loading-lg"></span>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div role="alert" className="alert alert-error">
+          <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <div>
+            <h3 className="font-bold">An Error Occurred!</h3>
+            <div className="text-xs">{error}</div>
+          </div>
+        </div>
+      );
+    }
+
+    if (images.length > 0) {
+      return (
+        <div className="flex flex-wrap justify-start gap-1">
+          {images.map((image) => (
+            <GalleryImage key={image.id} image={image} />
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <div className="hero min-h-[50vh] bg-base-100 rounded-lg">
+        <div className="hero-content text-center">
+          <div className="max-w-md">
+            <h1 className="text-4xl font-bold">No Images Yet</h1>
+            <p className="py-6">Your gallery is empty. Why not upload your first image?</p>
+            <button className="btn btn-primary" onClick={() => (document.getElementById(uploadModalId) as HTMLDialogElement)?.showModal()}>Get Started</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <main className="min-h-screen bg-gray-50 font-sans text-gray-800">
-      <Toaster position="bottom-right" reverseOrder={false} />
-      <div className="container mx-auto px-4 py-8">
-        <header className="text-center mb-8">
-          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">
-            Image Gallery
-          </h1>
-          <p className="mt-2 text-lg text-gray-600">
-            View and upload images to the database.
-          </p>
-        </header>
-
-        <ImageUploader onUploadSuccess={fetchImages} />
-
-        {loading ? (
-          <div className="text-center py-12">
-            <p className="text-xl text-gray-500">Loading images...</p>
-          </div>
-        ) : error ? (
-          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md shadow-md">
-            <p className="font-bold">An Error Occurred</p>
-            <p>{error}</p>
-          </div>
-        ) : images.length > 0 ? (
-          <div className="flex flex-wrap justify-start gap-1">
-            {/* UPDATE: Map over images and render the new GalleryImage component */}
-            {images.map((image) => (
-              <GalleryImage key={image.id} image={image} />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-xl text-gray-500">No images found. Try uploading some!</p>
-          </div>
-        )}
+    <>
+      <ImageUploaderModal modalId={uploadModalId} onUploadSuccess={fetchImages} />
+      <div className="container mx-auto p-4 sm:p-8">
+        {renderContent()}
       </div>
-    </main>
+    </>
   );
 }
