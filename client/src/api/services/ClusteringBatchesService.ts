@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { BatchAnalyze } from '../models/BatchAnalyze';
+import type { BatchClusterUpdate } from '../models/BatchClusterUpdate';
 import type { BatchCreate } from '../models/BatchCreate';
 import type { BatchResponse } from '../models/BatchResponse';
 import type { BatchUpdateImages } from '../models/BatchUpdateImages';
@@ -128,6 +129,33 @@ export class ClusteringBatchesService {
         return __request(OpenAPI, {
             method: 'PUT',
             url: '/batches/{batch_id}/analyze',
+            path: {
+                'batch_id': batchId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Update Clusters
+     * Manually updates the cluster assignments for a batch.
+     * Validates that the new cluster map contains the exact same set of images
+     * as the batch itself.
+     * @param batchId
+     * @param requestBody
+     * @returns BatchResponse Successful Response
+     * @throws ApiError
+     */
+    public static updateClustersBatchesBatchIdClustersPut(
+        batchId: number,
+        requestBody: BatchClusterUpdate,
+    ): CancelablePromise<BatchResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/batches/{batch_id}/clusters',
             path: {
                 'batch_id': batchId,
             },

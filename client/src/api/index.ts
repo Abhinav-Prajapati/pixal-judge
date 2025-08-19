@@ -8,6 +8,7 @@ export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
 export type { BatchAnalyze } from './models/BatchAnalyze';
+export type { BatchClusterUpdate } from './models/BatchClusterUpdate';
 export type { BatchCreate } from './models/BatchCreate';
 export type { BatchResponse } from './models/BatchResponse';
 export type { BatchUpdateImages } from './models/BatchUpdateImages';
