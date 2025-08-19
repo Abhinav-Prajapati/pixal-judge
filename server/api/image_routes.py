@@ -1,15 +1,15 @@
 import logging
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, BackgroundTasks
-from fastapi.responses import FileResponse  # <-- This is the main missing import
+from fastapi.responses import FileResponse 
 from sqlalchemy.orm import Session
 from typing import List
 from pathlib import Path
 
 from database.database import get_db
-from database.models import Image
-from utils.file_handling import save_uploaded_file, setup_directories, delete_image_files # <-- Also import delete_image_files
+from utils.file_handling import handle_uploaded_image, setup_directories, delete_image_files
 from config import THUMB_DIR
 from .schemas import ImageResponse
+from database.models import Image as ImageModel
 from .tasks import process_image_in_background
 
 logger = logging.getLogger(__name__)
@@ -22,28 +22,40 @@ router = APIRouter(
 @router.post("/upload", response_model=List[ImageResponse])
 def upload_images(
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db), 
+    db: Session = Depends(get_db),
     files: List[UploadFile] = File(...)
 ):
     """
-    Uploads one or more image files and triggers background processing for each.
+    Uploads one or more image files.
+    - Saves new images and triggers background processing.
+    - Detects duplicates based on file hash and returns existing image data.
     """
     setup_directories()
     
-    saved_images = []
-    logger.info(f"Received {len(files)} file(s) for upload.")
+    results = []
+    logger.info(f"Received {len(files)} file(s) for processing.")
 
     for file in files:
-        image_record = save_uploaded_file(file, db)
-        if image_record:
-            saved_images.append(image_record)
-            background_tasks.add_task(process_image_in_background, image_record.id)
-            logger.info(f"Queued background processing for image_id: {image_record.id} ({file.filename})")
+        try:
+            result = handle_uploaded_image(file, db)
+            results.append(result)
+
+            # ONLY queue a background task if the image is newly created.
+            # We can check if the result is an instance of our SQLAlchemy model.
+            if isinstance(result, ImageModel):
+                background_tasks.add_task(process_image_in_background, result.id)
+                logger.info(f"Queued background processing for NEW image_id: {result.id} ({file.filename})")
+        
+        except Exception as e:
+            # If handle_uploaded_image fails, we can skip this file and continue with others
+            # Or raise an HTTPException. For batch uploads, continuing is often better.
+            logger.error(f"Could not process file '{file.filename}'. Error: {e}. Skipping.")
+            # Optionally, you can add an error response for this specific file to the results list.
+
+    if not results:
+        raise HTTPException(status_code=400, detail="No images were processed successfully.")
     
-    if not saved_images:
-        raise HTTPException(status_code=400, detail="No images were saved.")
-    
-    return saved_images
+    return results
 
 @router.get("/", response_model=List[ImageResponse])
 def get_all_images(db: Session = Depends(get_db)):

@@ -11,6 +11,8 @@ class ImageResponse(BaseModel):
     original_filename: str
     file_path: str
     has_thumbnail: bool
+    is_duplicate: bool = False  
+    message: str | None = None  
     model_config = ConfigDict(from_attributes=True)
 
 class BatchCreate(BaseModel):

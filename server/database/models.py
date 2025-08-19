@@ -21,6 +21,7 @@ class Image(Base):
     file_path = Column(String(1024), unique=True, nullable=False)
     file_size = Column(BigInteger)
     mime_type = Column(String(255))
+    image_hash = Column(String(255), unique=True, nullable=False) 
     has_thumbnail = Column(Boolean, default=False)
     _features = Column('features', LargeBinary, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
