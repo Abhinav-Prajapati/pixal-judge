@@ -10,7 +10,9 @@ import { request as __request } from '../core/request';
 export class ImagesService {
     /**
      * Upload Images
-     * Uploads one or more image files and triggers background processing for each.
+     * Uploads one or more image files.
+     * - Saves new images and triggers background processing.
+     * - Detects duplicates based on file hash and returns existing image data.
      * @param formData
      * @returns ImageResponse Successful Response
      * @throws ApiError

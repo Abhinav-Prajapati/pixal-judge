@@ -61,12 +61,12 @@ def upload_images(
 def get_all_images(db: Session = Depends(get_db)):
     """Retrieves a list of all images in the database."""
     logger.info("Fetching all image records.")
-    return db.query(Image).all()
+    return db.query(ImageModel).all()
 
 @router.get("/{image_id}")
 def get_image_file(image_id: int, db: Session = Depends(get_db)):
     """Returns the original image file."""
-    image = db.query(Image).filter(Image.id == image_id).first()
+    image = db.query(ImageModel).filter(ImageModel.id == image_id).first()
     if not image:
         raise HTTPException(status_code=404, detail="Image not found.")
     
@@ -79,7 +79,7 @@ def get_image_file(image_id: int, db: Session = Depends(get_db)):
 @router.get("/thumbnail/{image_id}")
 def get_thumbnail_file(image_id: int, db: Session = Depends(get_db)):
     """Returns the thumbnail file for an image."""
-    image = db.query(Image).filter(Image.id == image_id).first()
+    image = db.query(ImageModel).filter(ImageModel.id == image_id).first()
     if not image:
         raise HTTPException(status_code=404, detail="Image not found.")
     
@@ -95,7 +95,7 @@ def get_thumbnail_file(image_id: int, db: Session = Depends(get_db)):
 @router.delete("/{image_id}")
 def delete_image(image_id: int, db: Session = Depends(get_db)):
     """Deletes an image's database record and its physical files."""
-    image = db.query(Image).filter(Image.id == image_id).first()
+    image = db.query(ImageModel).filter(ImageModel.id == image_id).first()
     if not image:
         raise HTTPException(status_code=404, detail="Image not found.")
     

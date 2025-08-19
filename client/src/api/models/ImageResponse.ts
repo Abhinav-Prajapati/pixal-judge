@@ -11,5 +11,7 @@ export type ImageResponse = {
     original_filename: string;
     file_path: string;
     has_thumbnail: boolean;
+    is_duplicate?: boolean;
+    message?: (string | null);
 };
 
