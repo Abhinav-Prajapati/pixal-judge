@@ -6,7 +6,7 @@
 */
 "use client";
 
-import { useState, useEffect, useCallback, FormEvent } from "react";
+import { useState, useEffect, useCallback, FormEvent, SyntheticEvent } from "react";
 import { OpenAPI, ImagesService, ImageResponse } from "@/api";
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -41,14 +41,12 @@ function ImageUploader({ onUploadSuccess }: { onUploadSuccess: () => void }) {
       const newImages = response.filter(img => !img.is_duplicate);
       const duplicateImages = response.filter(img => img.is_duplicate);
 
-      // 1. Update the loading toast ONLY for new images, or dismiss it
       if (newImages.length > 0) {
         toast.success(`Successfully uploaded ${newImages.length} new image(s)!`, { id: toastId });
       } else {
         toast.dismiss(toastId);
       }
 
-      // 2. Show a NEW, separate toast for each duplicate found
       duplicateImages.forEach(image => {
         toast(image.message || `Duplicate: ${image.original_filename}`, {
           icon: '⚠️',
@@ -58,7 +56,6 @@ function ImageUploader({ onUploadSuccess }: { onUploadSuccess: () => void }) {
 
       setFiles(null);
       (document.getElementById('file-input') as HTMLInputElement).value = '';
-
       onUploadSuccess();
 
     } catch (error) {
@@ -94,6 +91,49 @@ function ImageUploader({ onUploadSuccess }: { onUploadSuccess: () => void }) {
   );
 }
 
+// UPDATE: New component to handle individual image loading and styling
+function GalleryImage({ image }: { image: ImageResponse }) {
+  // State to hold the calculated style for the container
+  const [containerStyle, setContainerStyle] = useState<React.CSSProperties>({
+    width: '150px', // Start with a default placeholder width
+    height: '200px',
+    opacity: 0,     // Start hidden
+  });
+
+  // This function runs when the image has finished loading
+  const handleImageLoad = (e: SyntheticEvent<HTMLImageElement>) => {
+    const { naturalWidth, naturalHeight } = e.currentTarget;
+    const isLandscape = naturalWidth > naturalHeight;
+
+    // Set the final dimensions and fade the image in
+    setContainerStyle({
+      width: isLandscape ? '355px' : '112.5px',
+      height: '200px',
+      opacity: 1,
+    });
+  };
+
+  return (
+    <div
+      style={containerStyle}
+      className="group relative overflow-hidden shadow-lg transition-all duration-500 ease-in-out"
+    >
+      <img
+        src={`${OpenAPI.BASE}/images/thumbnail/${image.id}`}
+        alt={image.original_filename}
+        onLoad={handleImageLoad} // <-- This is the key part
+        className="h-full w-full object-cover transition-opacity duration-300 group-hover:opacity-90"
+        onError={(e) => {
+          (e.target as HTMLImageElement).src = 'https://placehold.co/400x400/eee/ccc?text=Error';
+        }}
+      />
+      <div className="absolute bottom-0 left-0 w-full bg-black bg-opacity-50 p-2 text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+        <p className="truncate text-xs font-medium">{image.original_filename}</p>
+      </div>
+    </div>
+  );
+}
+
 
 export default function ImageGalleryPage() {
   const [images, setImages] = useState<ImageResponse[]>([]);
@@ -119,9 +159,10 @@ export default function ImageGalleryPage() {
     fetchImages();
   }, [fetchImages]);
 
+  // UPDATE: Removed the `getImageStyle` function as this logic is now in the `GalleryImage` component.
+
   return (
     <main className="min-h-screen bg-gray-50 font-sans text-gray-800">
-      {/* UPDATE: Changed toast position to bottom-right */}
       <Toaster position="bottom-right" reverseOrder={false} />
       <div className="container mx-auto px-4 py-8">
         <header className="text-center mb-8">
@@ -145,21 +186,10 @@ export default function ImageGalleryPage() {
             <p>{error}</p>
           </div>
         ) : images.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          <div className="flex flex-wrap justify-start gap-1">
+            {/* UPDATE: Map over images and render the new GalleryImage component */}
             {images.map((image) => (
-              <div key={image.id} className="group relative aspect-square overflow-hidden rounded-lg shadow-lg transition-transform duration-300 hover:scale-105">
-                <img
-                  src={`${OpenAPI.BASE}/images/thumbnail/${image.id}`}
-                  alt={image.original_filename}
-                  className="h-full w-full object-cover transition-opacity duration-300 group-hover:opacity-90"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://placehold.co/400x400/eee/ccc?text=Error';
-                  }}
-                />
-                <div className="absolute bottom-0 left-0 w-full bg-black bg-opacity-50 p-2 text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                  <p className="truncate text-xs font-medium">{image.original_filename}</p>
-                </div>
-              </div>
+              <GalleryImage key={image.id} image={image} />
             ))}
           </div>
         ) : (
