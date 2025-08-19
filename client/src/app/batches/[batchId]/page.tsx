@@ -54,7 +54,7 @@ function SelectableImage({ imageId, isSelected, onSelect }: { imageId: number; i
 
 function ImageGrid({ imageIds, selectedIds, onImageSelect }: { imageIds: number[]; selectedIds: Set<number>; onImageSelect: (id: number) => void; }) {
     return (
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2">
             {imageIds.map(id => (
                 <SelectableImage
                     key={id}
@@ -122,7 +122,7 @@ function AddImagesModal({ modalId, batch, onUpdateComplete }: { modalId: string,
     return (
         <dialog id={modalId} ref={dialogRef} className="modal">
             <div className="modal-box w-11/12 max-w-6xl h-[80vh] flex flex-col">
-                <h3 className="font-bold text-2xl flex-shrink-0">Add Images to Batch</h3>
+                <h3 className="font-bold text-xl flex-shrink-0">Add Images to Batch</h3>
                 <div className="flex-grow overflow-y-auto bg-base-200 rounded-lg p-4 my-4">
                     {isLoading ? <div className="flex justify-center p-4"><span className="loading loading-spinner"></span></div> : (
                         <div className="flex flex-wrap gap-2">
@@ -190,12 +190,12 @@ function ToolPanel({ batch, onParamsChange, isAnalyzing, selectedCount, onRemove
     }, [eps, minSamples, metric, onParamsChange]);
 
     return (
-        <aside className="card bg-base-100 shadow-xl w-full lg:w-80 flex-shrink-0 h-fit">
+        <aside className="card bg-base-100 shadow-xl w-80 flex-shrink-0 h-fit sticky top-12">
             <div className="card-body">
                 <h2 className="card-title border-b border-base-300 pb-2">Tool Panel</h2>
                 <div className="space-y-6">
                     <div>
-                        <h3 className="text-lg font-semibold mb-3">Manage Batch</h3>
+                        <h3 className="font-semibold mb-3">Manage Batch</h3>
                         <div className="space-y-2">
                             <button onClick={onAddImagesClick} className="btn btn-primary btn-block">Add Images</button>
                             {selectedCount > 0 && (
@@ -205,24 +205,38 @@ function ToolPanel({ batch, onParamsChange, isAnalyzing, selectedCount, onRemove
                     </div>
                     <div className="divider"></div>
                     <div>
-                        <h3 className="text-lg font-semibold mb-3">Analysis Controls</h3>
+                        <h3 className="font-semibold mb-3">Groupe Controls</h3>
                         <div className='form-control space-y-4'>
                             <div>
                                 <label className="label">
-                                    <span className="label-text">Epsilon (eps): <span className="font-bold text-primary">{eps.toFixed(1)}</span></span>
+                                    <span className="label-text">Epsilon (eps): <span className="font-bold text-primary">{eps.toFixed(2)}</span></span>
                                 </label>
-                                <input type="range" min="0.1" max="1.0" step="0.1" value={eps} onChange={e => setEps(parseFloat(e.target.value))} className="range range-primary" />
+                                <input type="range" min="0.1" max="1.0" step="0.02" value={eps} onChange={e => setEps(parseFloat(e.target.value))} className="range range-xs range-primary" />
                             </div>
                             <div>
                                 <label className="label"><span className="label-text">Min Samples</span></label>
-                                <input type="number" value={minSamples} onChange={e => setMinSamples(parseInt(e.target.value))} className="input input-bordered w-full" />
-                            </div>
-                            <div>
-                                <label className="label"><span className="label-text">Metric</span></label>
-                                <select value={metric} onChange={e => setMetric(e.target.value)} className="select select-bordered w-full">
-                                    <option value="cosine">Cosine</option>
-                                    <option value="euclidean">Euclidean</option>
-                                </select>
+                                <div className="join w-full">
+                                    <button
+                                        type="button"
+                                        onClick={() => setMinSamples(prev => Math.max(1, prev - 1))}
+                                        className="btn join-item w-1/4"
+                                    >
+                                        -
+                                    </button>
+                                    <input
+                                        type="text" // Use text type for cleaner display
+                                        value={minSamples}
+                                        readOnly // Make it read-only as it's controlled by buttons
+                                        className="input input-bordered join-item w-1/2 text-center"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setMinSamples(prev => prev + 1)}
+                                        className="btn join-item w-1/4"
+                                    >
+                                        +
+                                    </button>
+                                </div>
                             </div>
                             {isAnalyzing && (
                                 <div className="text-center text-primary font-semibold mt-4 flex items-center justify-center gap-2">
@@ -328,30 +342,30 @@ export default function BatchDetailPage({ params }: { params: { batchId: string 
         }
         if (batch) {
             return (
-                <>
-                    <header className="mb-8">
-                        <h1 className="text-4xl font-extrabold">{batch.batch_name}</h1>
-                        <p className="mt-2 text-lg text-base-content/70">Status: {batch.status} | {batch.image_ids.length} Images</p>
-                    </header>
-                    <div className="flex flex-col lg:flex-row gap-8">
-                        <ToolPanel
-                            batch={batch}
-                            onParamsChange={setAnalysisParams}
-                            isAnalyzing={isAnalyzing}
-                            selectedCount={selectedImageIds.size}
-                            onRemoveSelected={() => (document.getElementById(removeModalId) as HTMLDialogElement)?.showModal()}
-                            onAddImagesClick={() => (document.getElementById(addModalId) as HTMLDialogElement)?.showModal()}
-                        />
-                        <div className={`flex-grow space-y-10 transition-opacity duration-300 ${isAnalyzing ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                <div className="flex flex-row gap-6">
+                    <ToolPanel
+                        batch={batch}
+                        onParamsChange={setAnalysisParams}
+                        isAnalyzing={isAnalyzing}
+                        selectedCount={selectedImageIds.size}
+                        onRemoveSelected={() => (document.getElementById(removeModalId) as HTMLDialogElement)?.showModal()}
+                        onAddImagesClick={() => (document.getElementById(addModalId) as HTMLDialogElement)?.showModal()}
+                    />
+                    <div className='flex-grow'>
+                        <header className="mb-6">
+                            <h1 className="text-3xl font-bold">{batch.batch_name}</h1>
+                            <p className="mt-1 text-base-content/70">Status: {batch.status} | {batch.image_ids.length} Images</p>
+                        </header>
+                        <div className={`space-y-8 transition-opacity duration-300 ${isAnalyzing ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
                             {clusterEntries.length > 0 ? (
                                 clusterEntries.map(([clusterId, imageIds]) => (
                                     <section key={clusterId} className="card bg-base-100 shadow-lg">
                                         <div className="card-body">
-                                            <h2 className="card-title text-2xl">
+                                            <h2 className="card-title text-xl">
                                                 Cluster {clusterId}
                                                 <span className="badge badge-ghost ml-2">{(imageIds as number[]).length} images</span>
                                             </h2>
-                                            <div className="divider my-2"></div>
+                                            <div className="divider my-1"></div>
                                             <ImageGrid imageIds={imageIds as number[]} selectedIds={selectedImageIds} onImageSelect={handleToggleSelection} />
                                         </div>
                                     </section>
@@ -360,18 +374,18 @@ export default function BatchDetailPage({ params }: { params: { batchId: string 
                                 <div className="hero bg-base-100 rounded-lg shadow-md">
                                     <div className="hero-content text-center">
                                         <div className="max-w-md">
-                                            <h1 className="text-3xl font-bold">No Clusters Found</h1>
-                                            <p className="py-6">This batch hasn't been analyzed yet, or the current parameters resulted in no clusters.</p>
+                                            <h1 className="text-2xl font-bold">No Clusters Found</h1>
+                                            <p className="py-4">This batch hasn't been analyzed yet, or the current parameters resulted in no clusters.</p>
                                         </div>
                                     </div>
                                 </div>
                             )}
                         </div>
                     </div>
-                </>
+                </div>
             );
         }
-        return null; // Should not happen if no error
+        return null;
     }
 
     return (
@@ -384,7 +398,7 @@ export default function BatchDetailPage({ params }: { params: { batchId: string 
                 message={`Are you sure you want to remove ${selectedImageIds.size} image(s) from this batch?`}
                 onConfirm={handleRemoveSelected}
             />
-            <div className="container mx-auto px-4 py-8">
+            <div className="p-6">
                 {renderContent()}
             </div>
         </>
