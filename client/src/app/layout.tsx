@@ -5,6 +5,7 @@ import Link from 'next/link';
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { useState, useEffect } from "react";
+import Providers from "./providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -93,7 +94,7 @@ export default function RootLayout({
         <Toaster position="bottom-right" reverseOrder={false} />
         <NavBar />
         <main className="bg-base-200 min-h-screen">
-          {children}
+          <Providers>{children}</Providers>
         </main>
       </body>
     </html>
