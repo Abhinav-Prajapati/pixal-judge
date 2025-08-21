@@ -89,10 +89,9 @@ export default function RootLayout({
   }, []);
 
   return (
-    <html lang="en" data-theme="light">
+    <html lang="en" data-theme="dark">
       <body className={inter.className}>
         <Toaster position="bottom-right" reverseOrder={false} />
-        <NavBar />
         <main className="bg-base-200 min-h-screen">
           <Providers>{children}</Providers>
         </main>
