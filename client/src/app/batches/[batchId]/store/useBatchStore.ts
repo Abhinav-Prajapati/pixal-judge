@@ -1,7 +1,8 @@
 import { create } from "zustand";
-import { BatchResponse, ClusteringBatchesService, OpenAPI } from "@/api";
+import { BatchResponse } from "@/api/models/BatchResponse";
+import { ClusteringBatchesService, OpenAPI } from "@/api";
 
-OpenAPI.BASE = "http://127.0.0.1:8000";
+OpenAPI.BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
 export type ClusterEntry = [string, number[]];
 
@@ -35,9 +36,16 @@ export const useBatchStore = create<BatchState>((set, get) => ({
 
     getClusterEntries: () => {
         const batch = get().batch;
-        if (!batch || !batch.cluster_summary || !batch.cluster_summary.cluster_map) {
+
+        if (!batch?.cluster_summary) {
             return [];
         }
-        return Object.entries(batch.cluster_summary.cluster_map) as ClusterEntry[];
+
+        const clusterMap = batch.cluster_summary.cluster_map as Record<string, number[]>;
+
+        if (!clusterMap || typeof clusterMap !== 'object') {
+            return [];
+        }
+        return Object.entries(clusterMap);
     },
 }));
