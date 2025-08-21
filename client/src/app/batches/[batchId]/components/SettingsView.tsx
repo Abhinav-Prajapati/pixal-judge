@@ -6,31 +6,16 @@ export function SettingsView() {
   const [minImages, setMinImages] = useState(1);
 
   return (
-    <div className="p-4 space-y-4">
-      {/* Cluster Sensitivity Slider */}
+    <div className="px-3 py-2">
+      {/* Action Button */}
       <div>
-        <label className="label">
-          <span className="label-text">Cluster Sensitivity</span>
-          <span className="label-text-alt">{sensitivity.toFixed(2)}</span>
-        </label>
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.02}
-          value={sensitivity}
-          onChange={(e) => setSensitivity(parseFloat(e.target.value))}
-          className="range range-primary"
-        />
-        <div className="flex justify-between text-xs px-1">
-          <span>0</span>
-          <span>1</span>
-        </div>
+        <button className="flex items-center justify-center gap-2 px-4 py-2 text-sm rounded-full bg-base-100 hover:bg-white/20 transition-colors w-32">
+          Analysis</button>
       </div>
 
       {/* Min Images Per Group Stepper */}
       <div>
-        <label className="label">
+        <label className="label my-3">
           <span className="label-text">Min Images per Group</span>
         </label>
         <div className="join">
@@ -55,9 +40,22 @@ export function SettingsView() {
         </div>
       </div>
 
-      {/* Action Button */}
+
+      {/* Cluster Sensitivity Slider */}
       <div>
-        <button className="btn btn-neutral w-full">Make Group</button>
+        <label className="label my-3">
+          <span className="label-text">Cluster Sensitivity</span>
+          <span className="label-text-alt">{sensitivity.toFixed(2)}</span>
+        </label>
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.02}
+          value={sensitivity}
+          onChange={(e) => setSensitivity(parseFloat(e.target.value))}
+          className="range range-xs range-primary"
+        />
       </div>
     </div>
   );
