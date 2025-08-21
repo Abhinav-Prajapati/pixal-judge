@@ -13,7 +13,7 @@ import { request as __request } from '../core/request';
 export class ClusteringBatchesService {
     /**
      * Get All Batches
-     * Retrieves a list of all clustering batches.
+     * Retrieves a list of all clustering batches with full image details.
      * @returns BatchResponse Successful Response
      * @throws ApiError
      */
