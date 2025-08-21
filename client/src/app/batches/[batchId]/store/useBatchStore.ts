@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { BatchResponse } from "@/api/models/BatchResponse";
 import { ClusteringBatchesService, OpenAPI } from "@/api";
 
-OpenAPI.BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+OpenAPI.BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 
 export type ClusterEntry = [string, number[]];
 
