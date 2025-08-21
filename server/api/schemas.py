@@ -35,7 +35,7 @@ class BatchResponse(BaseModel):
     id: int
     batch_name: str
     status: str
-    image_ids: List[int]
+    images: List[ImageResponse] 
     parameters: Dict[str, Any] | None
     cluster_summary: Dict[str, Any] | None
     model_config = ConfigDict(from_attributes=True)

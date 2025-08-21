@@ -14,28 +14,57 @@ router = APIRouter(
     tags=["Clustering Batches"]
 )
 
+def _hydrate_batch_response(batch: ImageBatch, db: Session) -> ImageBatch:
+    """
+    Helper function to fetch full Image objects and attach them to the batch.
+    Pydantic will use this `images` attribute to populate the BatchResponse.
+    """
+    if not batch.image_ids:
+        batch.images = []
+        return batch
+    
+    images = db.query(Image).filter(Image.id.in_(batch.image_ids)).all()
+    image_map = {img.id: img for img in images}
+    batch.images = [image_map[id] for id in batch.image_ids if id in image_map]
+    return batch
+
 @router.post("/", response_model=BatchResponse)
 def create_batch(batch_data: BatchCreate, db: Session = Depends(get_db)):
     """Creates a new, unprocessed batch record with a list of image IDs."""
-    # Check if all provided image IDs exist
     images_exist_count = db.query(Image).filter(Image.id.in_(batch_data.image_ids)).count()
-    if images_exist_count != len(batch_data.image_ids):
-        raise HTTPException(status_code=404, detail="One or more image IDs not found.")
+    if images_exist_count != len(set(batch_data.image_ids)):
+        raise HTTPException(status_code=404, detail="One or more image IDs not found or are duplicates.")
 
     new_batch = ImageBatch(
         batch_name=batch_data.name,
         image_ids=batch_data.image_ids,
-        status='pending'  # Initial status
+        status='pending'
     )
     db.add(new_batch)
     db.commit()
     db.refresh(new_batch)
-    return new_batch
+    return _hydrate_batch_response(new_batch, db)
 
 @router.get("/", response_model=List[BatchResponse])
 def get_all_batches(db: Session = Depends(get_db)):
-    """Retrieves a list of all clustering batches."""
-    return db.query(ImageBatch).all()
+    """Retrieves a list of all clustering batches with full image details."""
+    batches = db.query(ImageBatch).all()
+    if not batches:
+        return []
+    
+    all_image_ids = {img_id for batch in batches for img_id in batch.image_ids}
+    if not all_image_ids:
+        for batch in batches:
+            batch.images = []
+        return batches
+
+    images = db.query(Image).filter(Image.id.in_(all_image_ids)).all()
+    image_map = {img.id: img for img in images}
+    
+    for batch in batches:
+        batch.images = [image_map[id] for id in batch.image_ids if id in image_map]
+        
+    return batches
 
 @router.get("/{batch_id}", response_model=BatchResponse)
 def get_batch_details(batch_id: int, db: Session = Depends(get_db)):
@@ -43,7 +72,8 @@ def get_batch_details(batch_id: int, db: Session = Depends(get_db)):
     batch = db.query(ImageBatch).filter(ImageBatch.id == batch_id).first()
     if not batch:
         raise HTTPException(status_code=404, detail="Batch not found.")
-    return batch
+    
+    return _hydrate_batch_response(batch, db)
 
 @router.post("/{batch_id}/images", response_model=BatchResponse)
 def add_images_to_batch(batch_id: int, image_data: BatchUpdateImages, db: Session = Depends(get_db)):
@@ -52,15 +82,16 @@ def add_images_to_batch(batch_id: int, image_data: BatchUpdateImages, db: Sessio
     if not batch:
         raise HTTPException(status_code=404, detail="Batch not found.")
 
-    # Add new, unique image IDs to the batch
     current_ids = set(batch.image_ids)
     new_ids = set(image_data.image_ids)
     updated_ids = list(current_ids.union(new_ids))
     
     batch.image_ids = updated_ids
+    flag_modified(batch, "image_ids")
     db.commit()
     db.refresh(batch)
-    return batch
+
+    return _hydrate_batch_response(batch, db)
 
 @router.delete("/{batch_id}/images", response_model=BatchResponse)
 def remove_images_from_batch(batch_id: int, image_data: BatchUpdateImages, db: Session = Depends(get_db)):
@@ -69,14 +100,15 @@ def remove_images_from_batch(batch_id: int, image_data: BatchUpdateImages, db: S
     if not batch:
         raise HTTPException(status_code=404, detail="Batch not found.")
 
-    # Remove specified IDs from the batch
     ids_to_remove = set(image_data.image_ids)
     updated_ids = [id for id in batch.image_ids if id not in ids_to_remove]
 
     batch.image_ids = updated_ids
+    flag_modified(batch, "image_ids")
     db.commit()
     db.refresh(batch)
-    return batch
+
+    return _hydrate_batch_response(batch, db)
 
 @router.put("/{batch_id}/analyze", response_model=BatchResponse)
 def analyze_batch(batch_id: int, analysis_params: BatchAnalyze, db: Session = Depends(get_db)):
@@ -85,12 +117,13 @@ def analyze_batch(batch_id: int, analysis_params: BatchAnalyze, db: Session = De
     if not batch:
         raise HTTPException(status_code=404, detail="Batch not found.")
 
-    # Fetch images and validate that they have embeddings
     images_to_cluster = db.query(Image).filter(Image.id.in_(batch.image_ids)).all()
     if any(img.features is None for img in images_to_cluster):
         raise HTTPException(status_code=400, detail="One or more images in the batch are missing embeddings.")
+    
+    image_map = {img.id: img for img in images_to_cluster}
+    batch.images = [image_map[id] for id in batch.image_ids if id in image_map]
 
-    # Update status and parameters
     batch.status = 'processing'
     batch.parameters = {
         "eps": analysis_params.eps, 
@@ -99,12 +132,10 @@ def analyze_batch(batch_id: int, analysis_params: BatchAnalyze, db: Session = De
     }
     db.commit()
 
-    # Run clustering
     features_matrix = np.array([img.features for img in images_to_cluster])
     clusterer = ImageClusterer(eps=analysis_params.eps, min_samples=analysis_params.min_samples, metric=analysis_params.metric)
     labels = clusterer.fit_predict(features_matrix)
 
-    # Create summary and update batch
     stats = clusterer.get_cluster_stats()
     cluster_map = {str(label): [] for label in set(labels)}
     for image, label in zip(images_to_cluster, labels):
@@ -123,7 +154,10 @@ def analyze_batch(batch_id: int, analysis_params: BatchAnalyze, db: Session = De
     db.commit()
     db.refresh(batch)
     
+    batch.images = [image_map[id] for id in batch.image_ids if id in image_map]
+    
     return batch
+
 
 @router.put("/{batch_id}/clusters", response_model=BatchResponse)
 def update_clusters(
@@ -162,7 +196,6 @@ def update_clusters(
     batch.cluster_summary['noise_points'] = len(cluster_data.cluster_map.get('-1', []))
     batch.cluster_summary['note'] = "Manually updated"
 
-    # Explicitly mark the JSON field as modified for the session
     flag_modified(batch, "cluster_summary")
 
     batch.status = 'complete'
@@ -170,4 +203,4 @@ def update_clusters(
     db.commit()
     db.refresh(batch)
     
-    return batch
+    return _hydrate_batch_response(batch, db)
