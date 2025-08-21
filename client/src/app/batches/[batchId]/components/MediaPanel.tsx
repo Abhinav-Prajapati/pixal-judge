@@ -9,9 +9,9 @@ export function MediaPanel() {
   const { activeTab } = usePanelStore();
 
   return (
-    <div className="flex flex-row card bg-base-100 text-white w-100 h-full m-3">
+    <div className="flex flex-row card bg-base-300 text-white w-100 h-120 m-3">
       <TabBar />
-      <div className="w-px bg-gray-700" />
+      <div className="w-px bg-base-100" />
       <main className="flex-1 overflow-y-auto">
         {activeTab === "media" && <MediaView />}
         {activeTab === "settings" && <SettingsView />}

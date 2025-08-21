@@ -49,7 +49,7 @@ export function MediaView() {
         <button
           onClick={handleUploadClick}
           disabled={isProcessing}
-          className="flex items-center justify-center gap-2 px-4 py-2 text-sm rounded-full bg-base-300 hover:bg-white/20 transition-colors w-full"
+          className="flex items-center justify-center gap-2 px-4 py-2 text-sm rounded-full bg-base-100 hover:bg-white/20 transition-colors w-full"
         >
           <CloudUpload className="h-4 w-4" />
           <span>Upload</span>

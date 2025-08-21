@@ -10,7 +10,7 @@ export function TabBar() {
           <button
             key={key}
             onClick={() => setActiveTab(key)}
-            className={`p-2 rounded ${activeTab === key ? "text-blue-500" : ""}`}
+            className={`px-1 py-2 rounded ${activeTab === key ? "text-primary" : "text-base-content/50"}`}
             title={tabs[key].label}
           >
             <Icon className="w-5 h-5" />

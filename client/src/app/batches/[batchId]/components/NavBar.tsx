@@ -7,7 +7,7 @@ export function NavBar() {
   return (
     <div className="pl-2 pt-1">
       <details className="dropdown">
-        <summary className="btn m-1 flex items-center gap-2">
+        <summary className="btn m-1 flex items-center gap-2 rounded-full">
           <ChevronDown className="w-4 h-4" />
           {loading ? "Loading..." : batch?.batch_name || "Unnamed Project"}
         </summary>

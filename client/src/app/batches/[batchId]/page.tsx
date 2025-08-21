@@ -16,9 +16,9 @@ export default function Page({ params }: { params: { batchId: string } }) {
     }, [params.batchId, fetchBatch]);
 
     return (
-        <main className="h-screen w-screen bg-background text-foreground overflow-hidden">
+        <main className="h-screen w-screen bg-neutral text-foreground overflow-hidden">
             <NavBar />
-            <div className=" flex flex-row">
+            <div className=" flex flex-row h-max">
                 <MediaPanel />
                 <GroupPanel />
             </div>

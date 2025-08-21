@@ -64,7 +64,7 @@ export function GroupPanel() {
   };
 
   return (
-    <div className="card bg-base-100 text-white w-full h-full m-3 shadow-lg">
+    <div className="card bg-base-300 text-white w-full h-full m-3 shadow-lg">
       <div className="card-body overflow-y-auto">
         <h1 className="card-title border-b border-base-300 pb-2">Image Groups</h1>
         {renderContent()}
