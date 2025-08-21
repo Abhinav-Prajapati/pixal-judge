@@ -58,21 +58,29 @@ export function MediaView() {
       );
     }
 
-    if (batch?.image_ids && batch.image_ids.length > 0) {
+    if (batch?.images && batch.images.length > 0) {
       return (
         <div className="grid grid-cols-2 gap-4">
-          {batch.image_ids.map((id) => (
-            <div key={id} className="aspect-video bg-white/5  overflow-hidden">
-              <img
-                src={`${OpenAPI.BASE}/images/thumbnail/${id}`}
-                alt={`Thumbnail for image ${id}`}
-                className="w-full h-full object-cover"
-                loading="lazy"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    'https://placehold.co/320x180/27272a/71717a?text=Error';
-                }}
-              />
+          {batch.images.map((image) => (
+            <div className="">
+
+              <div key={image.id} className="aspect-video overflow-hidden">
+                <img
+                  src={`${OpenAPI.BASE}/images/thumbnail/${image.id}`}
+                  alt={`Thumbnail for image ${image.id}`}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src =
+                      'https://placehold.co/320x180/27272a/71717a?text=Error';
+                  }}
+                />
+              </div>
+              <div className=" text-primary-content/50 py-1 text-xs truncate">
+                {image.original_filename.length > 25
+                  ? `${image.original_filename.substring(0, 25)}...`
+                  : image.original_filename}
+              </div>
             </div>
           ))}
         </div>
