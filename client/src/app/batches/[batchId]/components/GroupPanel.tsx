@@ -45,12 +45,12 @@ export function GroupPanel() {
     }
 
     return (
-      <div className="space-y-6 p-4">
+      <div className="flex flex-row flex-wrap items-start gap-4">
         {clusterEntries.map(([clusterId, imageIds]) => (
-          <section key={clusterId}>
-            <h2 className="text-lg font-bold mb-2">
+          <section key={clusterId} className="rounded-lg bg-white/5 p-3">
+            <h2 className="mb-3">
               Cluster {clusterId}
-              <span className="badge badge-ghost ml-2">{imageIds.length} images</span>
+              <span className="badge badge-outline badge-info ml-2 rounded-full text-sm">{imageIds.length} images</span>
             </h2>
             <div className="flex flex-wrap gap-2">
               {imageIds.map(id => (
@@ -66,7 +66,6 @@ export function GroupPanel() {
   return (
     <div className="card bg-base-300 text-white w-full h-full m-3 shadow-lg">
       <div className="card-body overflow-y-auto">
-        <h1 className="card-title border-b border-base-300 pb-2">Image Groups</h1>
         {renderContent()}
       </div>
     </div>
