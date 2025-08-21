@@ -58,7 +58,7 @@ function CreateBatchModal({ modalId, onBatchCreated }: { modalId: string; onBatc
     setSelectedImageIds(new Set());
     setError(null);
   };
-  
+
   const handleClose = () => {
     resetState();
     dialogRef.current?.close();
@@ -77,7 +77,7 @@ function CreateBatchModal({ modalId, onBatchCreated }: { modalId: string; onBatc
         name: batchName,
         image_ids: Array.from(selectedImageIds),
       });
-      onBatchCreated(); 
+      onBatchCreated();
       handleClose();
     } catch (err) {
       setError("Failed to create batch. Please try again.");
@@ -123,9 +123,9 @@ function CreateBatchModal({ modalId, onBatchCreated }: { modalId: string; onBatc
           </div>
         </form>
       </div>
-       <form method="dialog" className="modal-backdrop">
-          <button onClick={handleClose}>close</button>
-       </form>
+      <form method="dialog" className="modal-backdrop">
+        <button onClick={handleClose}>close</button>
+      </form>
     </dialog>
   );
 }
@@ -175,7 +175,7 @@ export default function BatchesPage() {
                 <h2 className="card-title text-primary">{batch.batch_name}</h2>
                 <p className="text-sm text-base-content text-opacity-60 -mt-2">ID: {batch.id}</p>
                 <div className="card-actions justify-between items-center mt-4">
-                  <div className="text-base-content">{batch.image_ids.length} images</div>
+                  <div className="text-base-content">{batch.images.length} images</div>
                   <div className={`badge ${batch.status === 'complete' ? 'badge-success' : 'badge-warning'}`}>
                     {batch.status}
                   </div>
@@ -188,15 +188,15 @@ export default function BatchesPage() {
     }
 
     return (
-       <div className="text-center py-12 hero bg-base-200 rounded-lg">
-         <div className="hero-content text-center">
-            <div className="max-w-md">
-                <h1 className="text-3xl font-bold">No Batches Found</h1>
-                <p className="py-6">Create your first batch to start analyzing image clusters.</p>
-                <button className="btn btn-primary" onClick={() => (document.getElementById(modalId) as HTMLDialogElement)?.showModal()}>Get Started</button>
-            </div>
-         </div>
-       </div>
+      <div className="text-center py-12 hero bg-base-200 rounded-lg">
+        <div className="hero-content text-center">
+          <div className="max-w-md">
+            <h1 className="text-3xl font-bold">No Batches Found</h1>
+            <p className="py-6">Create your first batch to start analyzing image clusters.</p>
+            <button className="btn btn-primary" onClick={() => (document.getElementById(modalId) as HTMLDialogElement)?.showModal()}>Get Started</button>
+          </div>
+        </div>
+      </div>
     );
   };
 
