@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, UploadFile, File
 from sqlalchemy.orm import Session
 import numpy as np
 from typing import List
@@ -8,6 +8,8 @@ from database.models import Image, ImageBatch
 from processing.clustering import ImageClusterer
 from .schemas import BatchCreate, BatchAnalyze, BatchUpdateImages, BatchResponse, BatchClusterUpdate
 from sqlalchemy.orm.attributes import flag_modified
+from utils.file_handling import handle_uploaded_image
+from api.tasks import process_image_in_background
 
 router = APIRouter(
     prefix="/batches",
@@ -93,6 +95,50 @@ def add_images_to_batch(batch_id: int, image_data: BatchUpdateImages, db: Sessio
 
     return _hydrate_batch_response(batch, db)
 
+@router.post("/{batch_id}/upload-and-add", response_model=BatchResponse) # FIX: Duplicate code 
+def upload_and_add_to_batch(
+    batch_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    files: List[UploadFile] = File(...)
+):
+    """
+    Uploads one or more images and adds them to a specific batch.
+    - Utilizes the existing image upload logic, including duplicate detection.
+    - New images trigger background processing for feature extraction.
+    - Adds the processed image IDs (both new and duplicates) to the specified batch.
+    """
+    batch = db.query(ImageBatch).filter(ImageBatch.id == batch_id).first()
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch not found.")
+
+    processed_image_ids = []
+    for file in files:
+        try:
+            image_model = handle_uploaded_image(file, db)
+            
+            background_tasks.add_task(process_image_in_background, image_model.id)
+            
+            processed_image_ids.append(image_model.id)
+        except Exception as e:
+            continue
+
+    if not processed_image_ids:
+        raise HTTPException(status_code=400, detail="No images were processed successfully.")
+
+    # 2. Add the resulting image IDs to the cluster batch
+    current_ids = set(batch.image_ids)
+    new_ids = set(processed_image_ids)
+    
+    # The union of sets automatically handles images that might already be in the batch
+    batch.image_ids = list(current_ids.union(new_ids))
+    flag_modified(batch, "image_ids")
+    
+    db.commit()
+    db.refresh(batch)
+
+    return _hydrate_batch_response(batch, db)
+
 @router.delete("/{batch_id}/images", response_model=BatchResponse)
 def remove_images_from_batch(batch_id: int, image_data: BatchUpdateImages, db: Session = Depends(get_db)):
     """Removes one or more images from an existing batch."""
@@ -157,7 +203,6 @@ def analyze_batch(batch_id: int, analysis_params: BatchAnalyze, db: Session = De
     batch.images = [image_map[id] for id in batch.image_ids if id in image_map]
     
     return batch
-
 
 @router.put("/{batch_id}/clusters", response_model=BatchResponse)
 def update_clusters(
