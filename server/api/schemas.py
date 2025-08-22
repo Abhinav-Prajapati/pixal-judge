@@ -20,6 +20,10 @@ class BatchCreate(BaseModel):
     name: str
     image_ids: List[int]
 
+class BatchRename(BaseModel):
+    """Schema for renaming a batch."""
+    name: str
+
 class BatchAnalyze(BaseModel):
     """Schema for the analysis request."""
     eps: float = 0.3
