@@ -7,6 +7,7 @@ import type { BatchClusterUpdate } from '../models/BatchClusterUpdate';
 import type { BatchCreate } from '../models/BatchCreate';
 import type { BatchResponse } from '../models/BatchResponse';
 import type { BatchUpdateImages } from '../models/BatchUpdateImages';
+import type { Body_upload_and_add_to_batch_batches__batch_id__upload_and_add_post } from '../models/Body_upload_and_add_to_batch_batches__batch_id__upload_and_add_post';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -109,6 +110,34 @@ export class ClusteringBatchesService {
             },
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Upload And Add To Batch
+     * Uploads one or more images and adds them to a specific batch.
+     * - Utilizes the existing image upload logic, including duplicate detection.
+     * - New images trigger background processing for feature extraction.
+     * - Adds the processed image IDs (both new and duplicates) to the specified batch.
+     * @param batchId
+     * @param formData
+     * @returns BatchResponse Successful Response
+     * @throws ApiError
+     */
+    public static uploadAndAddToBatchBatchesBatchIdUploadAndAddPost(
+        batchId: number,
+        formData: Body_upload_and_add_to_batch_batches__batch_id__upload_and_add_post,
+    ): CancelablePromise<BatchResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/batches/{batch_id}/upload-and-add',
+            path: {
+                'batch_id': batchId,
+            },
+            formData: formData,
+            mediaType: 'multipart/form-data',
             errors: {
                 422: `Validation Error`,
             },

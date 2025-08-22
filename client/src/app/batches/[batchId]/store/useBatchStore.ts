@@ -13,6 +13,11 @@ interface BatchState {
     error: string | null;
     fetchBatch: (batchId: number) => Promise<void>;
     clearBatch: () => void;
+    /**
+     * Directly sets the batch data in the store.
+     * Useful for updating the state after an API call from a component.
+     */
+    setBatch: (batch: BatchResponse) => void; // Added this line
     getClusterEntries: () => ClusterEntry[];
     analyzeBatch: (params: BatchAnalyze) => Promise<void>;
 }
@@ -25,7 +30,10 @@ export const useBatchStore = create<BatchState>((set, get) => ({
     fetchBatch: async (batchId: number) => {
         set({ loading: true, error: null });
         try {
-            const data = await ClusteringBatchesService.getBatchDetailsBatchesBatchIdGet(batchId);
+            const data =
+                await ClusteringBatchesService.getBatchDetailsBatchesBatchIdGet(
+                    batchId
+                );
             set({ batch: data, loading: false });
         } catch (err) {
             console.error("Failed to fetch batch", err);
@@ -35,13 +43,21 @@ export const useBatchStore = create<BatchState>((set, get) => ({
 
     clearBatch: () => set({ batch: null, error: null }),
 
+    // --- NEW FUNCTION ADDED HERE ---
+    setBatch: (newBatch: BatchResponse) => {
+        set({ batch: newBatch, error: null });
+    },
+
     getClusterEntries: () => {
         const batch = get().batch;
         if (!batch?.cluster_summary) {
             return [];
         }
-        const clusterMap = batch.cluster_summary.cluster_map as Record<string, number[]>;
-        if (!clusterMap || typeof clusterMap !== 'object') {
+        const clusterMap = batch.cluster_summary.cluster_map as Record<
+            string,
+            number[]
+        >;
+        if (!clusterMap || typeof clusterMap !== "object") {
             return [];
         }
         return Object.entries(clusterMap);
@@ -50,7 +66,8 @@ export const useBatchStore = create<BatchState>((set, get) => ({
     analyzeBatch: async (params: BatchAnalyze) => {
         const batchId = get().batch?.id;
         if (!batchId) {
-            const errorMessage = "No batch is currently loaded to perform analysis on.";
+            const errorMessage =
+                "No batch is currently loaded to perform analysis on.";
             console.error(errorMessage);
             set({ error: errorMessage });
             return;
@@ -58,10 +75,11 @@ export const useBatchStore = create<BatchState>((set, get) => ({
 
         set({ loading: true, error: null });
         try {
-            const updatedBatch = await ClusteringBatchesService.analyzeBatchBatchesBatchIdAnalyzePut(
-                batchId,
-                params
-            );
+            const updatedBatch =
+                await ClusteringBatchesService.analyzeBatchBatchesBatchIdAnalyzePut(
+                    batchId,
+                    params
+                );
             set({ batch: updatedBatch, loading: false });
         } catch (err) {
             console.error("Failed to analyze batch", err);
