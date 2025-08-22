@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { BatchResponse } from "@/api/models/BatchResponse";
 import { ClusteringBatchesService, OpenAPI } from "@/api";
+import { BatchAnalyze } from "@/api/models/BatchAnalyze";
 
 OpenAPI.BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 
@@ -13,6 +14,7 @@ interface BatchState {
     fetchBatch: (batchId: number) => Promise<void>;
     clearBatch: () => void;
     getClusterEntries: () => ClusterEntry[];
+    analyzeBatch: (params: BatchAnalyze) => Promise<void>;
 }
 
 export const useBatchStore = create<BatchState>((set, get) => ({
@@ -24,7 +26,6 @@ export const useBatchStore = create<BatchState>((set, get) => ({
         set({ loading: true, error: null });
         try {
             const data = await ClusteringBatchesService.getBatchDetailsBatchesBatchIdGet(batchId);
-            console.log("Fetched batch data:", data);
             set({ batch: data, loading: false });
         } catch (err) {
             console.error("Failed to fetch batch", err);
@@ -36,16 +37,35 @@ export const useBatchStore = create<BatchState>((set, get) => ({
 
     getClusterEntries: () => {
         const batch = get().batch;
-
         if (!batch?.cluster_summary) {
             return [];
         }
-
         const clusterMap = batch.cluster_summary.cluster_map as Record<string, number[]>;
-
         if (!clusterMap || typeof clusterMap !== 'object') {
             return [];
         }
         return Object.entries(clusterMap);
+    },
+
+    analyzeBatch: async (params: BatchAnalyze) => {
+        const batchId = get().batch?.id;
+        if (!batchId) {
+            const errorMessage = "No batch is currently loaded to perform analysis on.";
+            console.error(errorMessage);
+            set({ error: errorMessage });
+            return;
+        }
+
+        set({ loading: true, error: null });
+        try {
+            const updatedBatch = await ClusteringBatchesService.analyzeBatchBatchesBatchIdAnalyzePut(
+                batchId,
+                params
+            );
+            set({ batch: updatedBatch, loading: false });
+        } catch (err) {
+            console.error("Failed to analyze batch", err);
+            set({ error: "Analysis failed. Please try again.", loading: false });
+        }
     },
 }));
