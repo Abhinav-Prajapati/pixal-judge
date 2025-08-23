@@ -13,7 +13,7 @@ import { client } from '@/client/client.gen';
 import { getAllImages, uploadImages } from "@/client/sdk.gen";
 import type { ImageResponse } from "@/client/types.gen";
 
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 client.setConfig({
   baseUrl: API_BASE_URL
 });
