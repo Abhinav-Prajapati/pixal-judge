@@ -1,98 +1,65 @@
 "use client";
 
-import { usePanelStore } from "../store/useUiStore";
-import { useBatchStore } from "../store/useBatchStore";
-import { OpenAPI, ClusteringBatchesService } from "@/api"; // Import OpenAPI and the API service
 import React, { useRef, useState } from "react";
-import {
-  CloudUpload,
-  Grid2X2,
-  ArrowDown01,
-  Upload,
-  Loader2,
-} from "lucide-react";
+import { useBatchStore } from "../store/useBatchStore";
+import { uploadAndAddImagesToBatch } from "@/client/sdk.gen";
+import { Loader2, CloudUpload, Grid2X2, ArrowDown01, Upload } from "lucide-react";
+
+// You should define this in a central config file
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 
 export function MediaView() {
-  // === State from stores ===
-  // Assuming the store provides a `setBatch` method to update the state
   const { batch, loading: isBatchLoading, error, setBatch } = useBatchStore();
-
-  // === Local UI State ===
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // === NEW: API-driven file processing ===
   const processFiles = async (files: FileList) => {
-    // 1. Guard against no batch being selected
-    if (!batch || !batch.id) {
+    if (!batch?.id) {
       console.error("Cannot upload: No batch is currently selected.");
-      // Optionally, show a user-facing error toast here
       return;
     }
     setIsProcessing(true);
     try {
-      // 2. Call the new API endpoint with the batch ID and files
-      const updatedBatch =
-        await ClusteringBatchesService.uploadAndAddToBatchBatchesBatchIdUploadAndAddPost(
-          batch.id,
-          { files: Array.from(files) }
-        );
-
-      // 3. Update the global store with the response from the server
-      setBatch(updatedBatch);
+      const response = await uploadAndAddImagesToBatch({
+        path: { batch_id: batch.id },
+        body: { files: Array.from(files) },
+        throwOnError: true
+      });
+      setBatch(response.data);
     } catch (apiError) {
       console.error("Failed to upload files:", apiError);
-      // Optionally, show a user-facing error toast here
     } finally {
-      // 4. Reset the loading state
       setIsProcessing(false);
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
+    if (e.target.files?.length) {
       processFiles(e.target.files);
     }
   };
 
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
+  const handleUploadClick = () => fileInputRef.current?.click();
 
-  // === The render logic remains the same, as it's driven by the store state ===
   const renderContent = () => {
     if (isBatchLoading) {
-      return (
-        <div className="flex items-center justify-center h-full">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
-        </div>
-      );
+      return <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin text-gray-500" /></div>;
     }
-
     if (error) {
-      return (
-        <div className="flex items-center justify-center h-full text-error">
-          Error: {error}
-        </div>
-      );
+      return <div className="flex items-center justify-center h-full text-error">Error: {error}</div>;
     }
 
-    if (batch?.images && batch.images.length > 0) {
+    if (batch?.image_associations && batch.image_associations.length > 0) {
       return (
         <div className="grid grid-cols-2 gap-4">
-          {batch.images.map((image) => (
-            <div className="">
-
-              <div key={image.id} className="aspect-video overflow-hidden">
+          {batch.image_associations.map(({ image }) => (
+            <div key={image.id}>
+              <div className="aspect-video overflow-hidden rounded-md">
                 <img
-                  src={`${OpenAPI.BASE}/images/thumbnail/${image.id}`}
-                  alt={`Thumbnail for image ${image.id}`}
+                  src={`${API_BASE_URL}/images/thumbnail/${image.id}`}
+                  alt={image.original_filename}
                   className="w-full h-full object-cover"
                   loading="lazy"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src =
-                      "https://placehold.co/320x180/27272a/71717a?text=Error";
-                  }}
                 />
               </div>
               <div className="text-primary-content/50 py-1 text-xs truncate">
@@ -103,16 +70,11 @@ export function MediaView() {
         </div>
       );
     }
-    // Otherwise, show the large upload area
+
     return (
-      <div
-        onClick={handleUploadClick}
-        className="flex flex-col items-center justify-center h-full text-center rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
-      >
+      <div onClick={handleUploadClick} className="flex flex-col items-center justify-center h-full text-center rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer">
         <Upload className="h-12 w-12 text-gray-400" />
-        <p className="mt-4 text-sm text-gray-400">
-          Drag and drop photos here
-        </p>
+        <p className="mt-4 text-sm text-gray-400">Drag and drop photos here</p>
         <p className="mt-2 text-xs text-gray-500">or click to browse</p>
       </div>
     );
@@ -120,43 +82,16 @@ export function MediaView() {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Hidden file input for handling uploads */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        className="hidden"
-        multiple
-        accept="image/*"
-        onChange={handleFileChange}
-      />
-
-      {/* Top Controls Bar */}
+      <input type="file" ref={fileInputRef} className="hidden" multiple accept="image/*" onChange={handleFileChange} />
       <div className="flex items-center justify-between p-3 border-b border-white/10">
-        <button
-          onClick={handleUploadClick}
-          disabled={isProcessing || !batch} // Also disable if no batch is selected
-          className="flex items-center justify-center gap-2 px-4 py-2 text-sm rounded-full bg-base-100 hover:bg-white/20 transition-colors w-32 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isProcessing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <>
-              <CloudUpload className="h-4 w-4" />
-              <span>Upload</span>
-            </>
-          )}
+        <button onClick={handleUploadClick} disabled={isProcessing || !batch} className="flex items-center justify-center gap-2 px-4 py-2 text-sm rounded-full bg-base-100 hover:bg-white/20 transition-colors w-32 disabled:opacity-50 disabled:cursor-not-allowed">
+          {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <><CloudUpload className="h-4 w-4" /><span>Upload</span></>}
         </button>
         <div className="flex items-center gap-1">
-          <button className="p-2 rounded-md hover:bg-white/10">
-            <Grid2X2 className="h-4 w-4" />
-          </button>
-          <button className="p-2 rounded-md hover:bg-white/10">
-            <ArrowDown01 className="h-4 w-4" />
-          </button>
+          <button className="p-2 rounded-md hover:bg-white/10"><Grid2X2 className="h-4 w-4" /></button>
+          <button className="p-2 rounded-md hover:bg-white/10"><ArrowDown01 className="h-4 w-4" /></button>
         </div>
       </div>
-
-      {/* Content Area */}
       <div className="flex-1 p-3 overflow-y-auto">{renderContent()}</div>
     </div>
   );

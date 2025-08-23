@@ -1,9 +1,6 @@
 import { create } from "zustand";
-import { BatchResponse } from "@/api/models/BatchResponse";
-import { ClusteringBatchesService, OpenAPI } from "@/api";
-import { BatchAnalyze } from "@/api/models/BatchAnalyze";
-
-OpenAPI.BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
+import type { BatchResponse, BatchAnalyze } from "@/client/types.gen";
+import { getBatch, analyzeBatch } from "@/client/sdk.gen";
 
 export type ClusterEntry = [string, number[]];
 
@@ -12,12 +9,7 @@ interface BatchState {
     loading: boolean;
     error: string | null;
     fetchBatch: (batchId: number) => Promise<void>;
-    clearBatch: () => void;
-    /**
-     * Directly sets the batch data in the store.
-     * Useful for updating the state after an API call from a component.
-     */
-    setBatch: (batch: BatchResponse) => void; // Added this line
+    setBatch: (batch: BatchResponse) => void;
     getClusterEntries: () => ClusterEntry[];
     analyzeBatch: (params: BatchAnalyze) => Promise<void>;
 }
@@ -27,60 +19,54 @@ export const useBatchStore = create<BatchState>((set, get) => ({
     loading: false,
     error: null,
 
-    fetchBatch: async (batchId: number) => {
+    fetchBatch: async (batchId) => {
         set({ loading: true, error: null });
         try {
-            const data =
-                await ClusteringBatchesService.getBatchDetailsBatchesBatchIdGet(
-                    batchId
-                );
-            set({ batch: data, loading: false });
+            const response = await getBatch({ path: { batch_id: batchId }, throwOnError: true });
+            set({ batch: response.data, loading: false });
         } catch (err) {
             console.error("Failed to fetch batch", err);
             set({ error: "Failed to load batch", loading: false });
         }
     },
 
-    clearBatch: () => set({ batch: null, error: null }),
-
-    // --- NEW FUNCTION ADDED HERE ---
-    setBatch: (newBatch: BatchResponse) => {
+    setBatch: (newBatch) => {
         set({ batch: newBatch, error: null });
     },
 
     getClusterEntries: () => {
-        const batch = get().batch;
-        if (!batch?.cluster_summary) {
-            return [];
-        }
-        const clusterMap = batch.cluster_summary.cluster_map as Record<
-            string,
-            number[]
-        >;
-        if (!clusterMap || typeof clusterMap !== "object") {
-            return [];
-        }
-        return Object.entries(clusterMap);
+        const { batch } = get();
+        if (!batch?.image_associations) return [];
+
+        const clusters = batch.image_associations.reduce((acc, assoc) => {
+            const { image, group_label } = assoc;
+            if (group_label !== null) {
+                if (!acc[group_label]) {
+                    acc[group_label] = [];
+                }
+                acc[group_label].push(image.id);
+            }
+            return acc;
+        }, {} as Record<string, number[]>);
+
+        return Object.entries(clusters);
     },
 
-    analyzeBatch: async (params: BatchAnalyze) => {
+    analyzeBatch: async (params) => {
         const batchId = get().batch?.id;
         if (!batchId) {
-            const errorMessage =
-                "No batch is currently loaded to perform analysis on.";
-            console.error(errorMessage);
-            set({ error: errorMessage });
+            set({ error: "No batch is currently loaded." });
             return;
         }
 
         set({ loading: true, error: null });
         try {
-            const updatedBatch =
-                await ClusteringBatchesService.analyzeBatchBatchesBatchIdAnalyzePut(
-                    batchId,
-                    params
-                );
-            set({ batch: updatedBatch, loading: false });
+            const response = await analyzeBatch({
+                path: { batch_id: batchId },
+                body: params,
+                throwOnError: true
+            });
+            set({ batch: response.data, loading: false });
         } catch (err) {
             console.error("Failed to analyze batch", err);
             set({ error: "Analysis failed. Please try again.", loading: false });
