@@ -7,14 +7,17 @@
 "use client";
 
 import { useState, useEffect, useCallback, FormEvent, SyntheticEvent, useRef } from "react";
-import { OpenAPI, ImagesService, ImageResponse } from "@/api";
 import toast from 'react-hot-toast';
 
-// IMPORTANT: Configure the base URL of your running FastAPI backend.
-OpenAPI.BASE = "http://127.0.0.1:8000";
+import { client } from '@/client/client.gen';
+import { getAllImages } from "@/client/sdk.gen";
+import type { ImageResponse } from "@/client/types.gen";
 
+const API_BASE_URL = "http://127.0.0.1:8000";
+client.setConfig({
+  baseUrl: API_BASE_URL
+});
 
-// --- UPLOAD MODAL ---
 function ImageUploaderModal({ modalId, onUploadSuccess }: { modalId: string, onUploadSuccess: () => void }) {
   const [files, setFiles] = useState<FileList | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
@@ -34,37 +37,10 @@ function ImageUploaderModal({ modalId, onUploadSuccess }: { modalId: string, onU
     setIsUploading(true);
     const toastId = toast.loading(`Uploading ${files.length} file(s)...`);
 
-    try {
-      const response = await ImagesService.uploadImagesImagesUploadPost({
-        files: Array.from(files),
-      });
-
-      const newImages = response.filter(img => !img.is_duplicate);
-      const duplicateImages = response.filter(img => img.is_duplicate);
-
-      if (newImages.length > 0) {
-        toast.success(`Successfully uploaded ${newImages.length} new image(s)!`, { id: toastId });
-      } else {
-        toast.dismiss(toastId);
-      }
-
-      duplicateImages.forEach(image => {
-        toast(image.message || `Duplicate: ${image.original_filename}`, { icon: '⚠️', duration: 5000 });
-      });
-
-      setFiles(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-      onUploadSuccess();
-      (document.getElementById(modalId) as HTMLDialogElement)?.close();
-
-    } catch (error) {
-      console.error("Upload failed:", error);
-      toast.error('Upload failed. Please check the console.', { id: toastId });
-    } finally {
-      setIsUploading(false);
-    }
+    // NOTE: This part will be migrated next.
+    alert("Upload logic needs to be migrated!");
+    setIsUploading(false);
+    toast.dismiss(toastId);
   };
 
   return (
@@ -82,7 +58,7 @@ function ImageUploaderModal({ modalId, onUploadSuccess }: { modalId: string, onU
             />
           </div>
           <div className="modal-action">
-             <button type="button" className="btn" onClick={() => (document.getElementById(modalId) as HTMLDialogElement)?.close()}>Cancel</button>
+            <button type="button" className="btn" onClick={() => (document.getElementById(modalId) as HTMLDialogElement)?.close()}>Cancel</button>
             <button
               type="submit"
               disabled={isUploading || !files || files.length === 0}
@@ -94,30 +70,24 @@ function ImageUploaderModal({ modalId, onUploadSuccess }: { modalId: string, onU
           </div>
         </form>
       </div>
-       <form method="dialog" className="modal-backdrop">
-         <button>close</button>
-       </form>
+      <form method="dialog" className="modal-backdrop">
+        <button>close</button>
+      </form>
     </dialog>
   );
 }
 
-
-// --- GALLERY IMAGE (Original Styling) ---
 function GalleryImage({ image }: { image: ImageResponse }) {
-  // State to hold the calculated style for the container
   const [containerStyle, setContainerStyle] = useState<React.CSSProperties>({
-    width: '150px', // Start with a default placeholder width
+    width: '150px',
     height: '200px',
-    opacity: 0,      // Start hidden
-    backgroundColor: '#e5e7eb' // Placeholder color
+    opacity: 0,
+    backgroundColor: '#e5e7eb'
   });
 
-  // This function runs when the image has finished loading
   const handleImageLoad = (e: SyntheticEvent<HTMLImageElement>) => {
     const { naturalWidth, naturalHeight } = e.currentTarget;
     const isLandscape = naturalWidth > naturalHeight;
-
-    // Set the final dimensions and fade the image in
     setContainerStyle({
       width: isLandscape ? '355px' : '112.5px',
       height: '200px',
@@ -131,7 +101,7 @@ function GalleryImage({ image }: { image: ImageResponse }) {
       className="group relative overflow-hidden shadow-lg transition-all duration-500 ease-in-out"
     >
       <img
-        src={`${OpenAPI.BASE}/images/thumbnail/${image.id}`}
+        src={`${API_BASE_URL}/images/thumbnail/${image.id}`}
         alt={image.original_filename}
         onLoad={handleImageLoad}
         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
@@ -146,28 +116,24 @@ function GalleryImage({ image }: { image: ImageResponse }) {
   );
 }
 
-
-// --- MAIN PAGE COMPONENT ---
 export default function ImageGalleryPage() {
   const [images, setImages] = useState<ImageResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const uploadModalId = "upload_modal";
 
-  const fetchImages = useCallback(() => {
+  const fetchImages = useCallback(async () => {
     setLoading(true);
-    ImagesService.getAllImagesImagesGet()
-      .then(data => {
-        setImages(data);
-        setError(null);
-      })
-      .catch(e => {
-        console.error("Failed to fetch images:", e);
-        setError("Could not connect to the API. Please ensure the backend server is running.");
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+    try {
+      const response = await getAllImages();
+      setImages(response.data || []);
+      setError(null);
+    } catch (e) {
+      console.error("Failed to fetch images:", e);
+      setError("Could not connect to the API. Please ensure the backend server is running.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

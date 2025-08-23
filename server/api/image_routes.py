@@ -1,6 +1,6 @@
 import logging
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, BackgroundTasks
-from fastapi.responses import FileResponse 
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List
 from pathlib import Path
@@ -19,7 +19,11 @@ router = APIRouter(
     tags=["Images"]
 )
 
-@router.post("/upload", response_model=List[ImageResponse])
+@router.post(
+    "/upload",
+    response_model=List[ImageResponse],
+    operation_id="uploadImages"
+)
 def upload_images(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
@@ -40,30 +44,32 @@ def upload_images(
             result = handle_uploaded_image(file, db)
             results.append(result)
 
-            # ONLY queue a background task if the image is newly created.
-            # We can check if the result is an instance of our SQLAlchemy model.
             if isinstance(result, ImageModel):
                 background_tasks.add_task(process_image_in_background, result.id)
                 logger.info(f"Queued background processing for NEW image_id: {result.id} ({file.filename})")
         
         except Exception as e:
-            # If handle_uploaded_image fails, we can skip this file and continue with others
-            # Or raise an HTTPException. For batch uploads, continuing is often better.
             logger.error(f"Could not process file '{file.filename}'. Error: {e}. Skipping.")
-            # Optionally, you can add an error response for this specific file to the results list.
 
     if not results:
         raise HTTPException(status_code=400, detail="No images were processed successfully.")
     
     return results
 
-@router.get("/", response_model=List[ImageResponse])
+@router.get(
+    "/",
+    response_model=List[ImageResponse],
+    operation_id="getAllImages"
+)
 def get_all_images(db: Session = Depends(get_db)):
     """Retrieves a list of all images in the database."""
     logger.info("Fetching all image records.")
     return db.query(ImageModel).all()
 
-@router.get("/{image_id}")
+@router.get(
+    "/{image_id}",
+    operation_id="getImageFile"
+)
 def get_image_file(image_id: int, db: Session = Depends(get_db)):
     """Returns the original image file."""
     image = db.query(ImageModel).filter(ImageModel.id == image_id).first()
@@ -76,7 +82,10 @@ def get_image_file(image_id: int, db: Session = Depends(get_db)):
         
     return FileResponse(image_path)
 
-@router.get("/thumbnail/{image_id}")
+@router.get(
+    "/thumbnail/{image_id}",
+    operation_id="getImageThumbnail"
+)
 def get_thumbnail_file(image_id: int, db: Session = Depends(get_db)):
     """Returns the thumbnail file for an image."""
     image = db.query(ImageModel).filter(ImageModel.id == image_id).first()
@@ -92,18 +101,19 @@ def get_thumbnail_file(image_id: int, db: Session = Depends(get_db)):
         
     return FileResponse(thumb_path)
 
-@router.delete("/{image_id}")
+@router.delete(
+    "/{image_id}",
+    operation_id="deleteImage"
+)
 def delete_image(image_id: int, db: Session = Depends(get_db)):
     """Deletes an image's database record and its physical files."""
     image = db.query(ImageModel).filter(ImageModel.id == image_id).first()
     if not image:
         raise HTTPException(status_code=404, detail="Image not found.")
     
-    # First, delete the physical files
     if not delete_image_files(image):
         raise HTTPException(status_code=500, detail="Failed to delete image files from disk.")
     
-    # If file deletion is successful, delete the database record
     db.delete(image)
     db.commit()
     

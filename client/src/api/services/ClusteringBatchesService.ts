@@ -5,6 +5,7 @@
 import type { BatchAnalyze } from '../models/BatchAnalyze';
 import type { BatchClusterUpdate } from '../models/BatchClusterUpdate';
 import type { BatchCreate } from '../models/BatchCreate';
+import type { BatchRename } from '../models/BatchRename';
 import type { BatchResponse } from '../models/BatchResponse';
 import type { BatchUpdateImages } from '../models/BatchUpdateImages';
 import type { Body_upload_and_add_to_batch_batches__batch_id__upload_and_add_post } from '../models/Body_upload_and_add_to_batch_batches__batch_id__upload_and_add_post';
@@ -56,6 +57,52 @@ export class ClusteringBatchesService {
     ): CancelablePromise<BatchResponse> {
         return __request(OpenAPI, {
             method: 'GET',
+            url: '/batches/{batch_id}',
+            path: {
+                'batch_id': batchId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Rename Batch
+     * Renames an existing batch.
+     * @param batchId
+     * @param requestBody
+     * @returns BatchResponse Successful Response
+     * @throws ApiError
+     */
+    public static renameBatchBatchesBatchIdPut(
+        batchId: number,
+        requestBody: BatchRename,
+    ): CancelablePromise<BatchResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/batches/{batch_id}',
+            path: {
+                'batch_id': batchId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Delete Batch
+     * Deletes an existing batch.
+     * @param batchId
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static deleteBatchBatchesBatchIdDelete(
+        batchId: number,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
             url: '/batches/{batch_id}',
             path: {
                 'batch_id': batchId,
@@ -118,9 +165,6 @@ export class ClusteringBatchesService {
     /**
      * Upload And Add To Batch
      * Uploads one or more images and adds them to a specific batch.
-     * - Utilizes the existing image upload logic, including duplicate detection.
-     * - New images trigger background processing for feature extraction.
-     * - Adds the processed image IDs (both new and duplicates) to the specified batch.
      * @param batchId
      * @param formData
      * @returns BatchResponse Successful Response

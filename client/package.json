@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --hostname localhost",
+    "openapi-ts": "openapi-ts",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -20,6 +21,7 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@hey-api/openapi-ts": "0.81.0",
     "@tailwindcss/postcss": "^4.1.12",
     "@types/node": "^20",
     "@types/react": "^19",
