@@ -27,13 +27,12 @@ export default function Page() {
   }, [params.batchId, fetchBatch]);
 
   return (
-    <main className="h-screen w-screen bg-neutral text-foreground overflow-hidden">
+    <main className="h-screen w-screen bg-neutral text-foreground overflow-hidden flex flex-col">
       <NavBar />
-      <div className=" flex flex-row h-max">
+      <div className="flex flex-row flex-1 min-h-0">
         <MediaPanel />
         <GroupPanel />
       </div>
     </main>
   );
 }
-

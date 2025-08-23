@@ -49,7 +49,10 @@ export function GroupPanel() {
   };
 
   return (
-    <div className="card bg-base-300 text-white w-full h-full m-3 shadow-lg">
+    // --- FIX APPLIED HERE ---
+    // Added `flex flex-col` to the card. This makes the card a flex container,
+    // which allows the `card-body` to correctly fill the available height and then scroll.
+    <div className="card bg-base-300 text-white w-full h-full m-3 shadow-lg flex flex-col">
       <div className="card-body overflow-y-auto">
         {renderContent()}
       </div>
