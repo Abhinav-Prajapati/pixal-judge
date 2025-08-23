@@ -1,5 +1,6 @@
 'use client'
 import { useEffect } from "react";
+import { useParams } from 'next/navigation';
 import { useBatchStore } from "./store/useBatchStore";
 import { MediaPanel } from "./components/MediaPanel";
 import { NavBar } from "./components/NavBar";
@@ -11,13 +12,17 @@ client.setConfig({
   baseUrl: API_BASE_URL
 });
 
-export default function Page({ params }: { params: { batchId: string } }) {
+export default function Page() {
+  const params = useParams();
   const { fetchBatch } = useBatchStore();
 
   useEffect(() => {
-    const id = parseInt(params.batchId, 10);
-    if (!isNaN(id)) {
-      fetchBatch(id);
+    const batchId = Array.isArray(params.batchId) ? params.batchId[0] : params.batchId;
+    if (batchId) {
+      const id = parseInt(batchId, 10);
+      if (!isNaN(id)) {
+        fetchBatch(id);
+      }
     }
   }, [params.batchId, fetchBatch]);
 
@@ -31,3 +36,4 @@ export default function Page({ params }: { params: { batchId: string } }) {
     </main>
   );
 }
+
