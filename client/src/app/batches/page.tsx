@@ -7,12 +7,15 @@
 
 import { useState, useEffect, FormEvent, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { OpenAPI, ClusteringBatchesService, ImagesService, BatchResponse, ImageResponse } from '../../api';
+import { getAllBatches, createBatch, getAllImages } from '@/client/sdk.gen';
+import type { BatchResponse, ImageResponse } from '@/client/types.gen';
+import { client } from '@/client/client.gen';
 
-// Configure the base URL for the API
-OpenAPI.BASE = "http://127.0.0.1:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
+client.setConfig({
+  baseUrl: API_BASE_URL
+});
 
-// --- DaisyUI Modal Component for Creating a New Batch ---
 function CreateBatchModal({ modalId, onBatchCreated }: { modalId: string; onBatchCreated: () => void; }) {
   const [allImages, setAllImages] = useState<ImageResponse[]>([]);
   const [selectedImageIds, setSelectedImageIds] = useState<Set<number>>(new Set());
@@ -21,15 +24,14 @@ function CreateBatchModal({ modalId, onBatchCreated }: { modalId: string; onBatc
   const [error, setError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
-  // Fetch images only when the dialog is actually opened
   useEffect(() => {
     const dialog = dialogRef.current;
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         if (mutation.attributeName === 'open' && dialog?.open && allImages.length === 0) {
           setIsLoading(true);
-          ImagesService.getAllImagesImagesGet()
-            .then(setAllImages)
+          getAllImages({ throwOnError: true })
+            .then(response => setAllImages(response.data))
             .catch(() => setError("Failed to load images for selection."))
             .finally(() => setIsLoading(false));
         }
@@ -73,9 +75,11 @@ function CreateBatchModal({ modalId, onBatchCreated }: { modalId: string; onBatc
     setError(null);
     setIsLoading(true);
     try {
-      await ClusteringBatchesService.createBatchBatchesPost({
-        name: batchName,
-        image_ids: Array.from(selectedImageIds),
+      await createBatch({
+        body: {
+          name: batchName,
+          image_ids: Array.from(selectedImageIds),
+        }
       });
       onBatchCreated();
       handleClose();
@@ -107,7 +111,7 @@ function CreateBatchModal({ modalId, onBatchCreated }: { modalId: string; onBatc
             <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
               {allImages.map(img => (
                 <div key={img.id} onClick={() => handleImageSelect(img.id)} className={`relative aspect-square rounded-md overflow-hidden cursor-pointer ring-offset-base-100 ring-offset-2 ${selectedImageIds.has(img.id) ? 'ring-2 ring-primary' : ''}`}>
-                  <img src={`${OpenAPI.BASE}/images/thumbnail/${img.id}`} alt={img.original_filename} className="h-full w-full object-cover" />
+                  <img src={`${API_BASE_URL}/images/thumbnail/${img.id}`} alt={img.original_filename} className="h-full w-full object-cover" />
                   {selectedImageIds.has(img.id) && <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center text-white">✓</div>}
                 </div>
               ))}
@@ -129,18 +133,24 @@ function CreateBatchModal({ modalId, onBatchCreated }: { modalId: string; onBatc
     </dialog>
   );
 }
-
 // --- Main Batches Page Component ---
 export default function BatchesPage() {
   const [batches, setBatches] = useState<BatchResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const modalId = "create_batch_modal";
+  // In your BatchesPage component...
 
   const fetchBatches = useCallback(() => {
     setLoading(true);
-    ClusteringBatchesService.getAllBatchesBatchesGet()
-      .then(setBatches)
+    getAllBatches({ throwOnError: true })
+      .then(response => {
+        // --- ADD THIS LOG ---
+        console.log("Full API response object:", response);
+        console.log("Value of response.data:", response.data);
+
+        setBatches(response.data);
+      })
       .catch(e => {
         console.error("Failed to fetch batches:", e);
         setError("Could not connect to the API.");
@@ -166,7 +176,9 @@ export default function BatchesPage() {
       );
     }
 
-    if (batches.length > 0) {
+    // --- FIX APPLIED HERE ---
+    // This check now safely verifies that `batches` is an array and has items before mapping.
+    if (Array.isArray(batches) && batches.length > 0) {
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {batches.map(batch => (
@@ -175,7 +187,7 @@ export default function BatchesPage() {
                 <h2 className="card-title text-primary">{batch.batch_name}</h2>
                 <p className="text-sm text-base-content text-opacity-60 -mt-2">ID: {batch.id}</p>
                 <div className="card-actions justify-between items-center mt-4">
-                  <div className="text-base-content">{batch.images.length} images</div>
+                  <div className="text-base-content">{batch.image_associations.length} images</div>
                   <div className={`badge ${batch.status === 'complete' ? 'badge-success' : 'badge-warning'}`}>
                     {batch.status}
                   </div>
