@@ -7,7 +7,7 @@ from sklearn.cluster import DBSCAN
 from sklearn.preprocessing import StandardScaler
 from typing import Dict
 
-class ImageClusterer:
+class ImageGrouper:
     """Clusters image features using the DBSCAN algorithm."""
 
     def __init__(self, eps: float = 0.5, min_samples: int = 2, metric: str = 'cosine'):
