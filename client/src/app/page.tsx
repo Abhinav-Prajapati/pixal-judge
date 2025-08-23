@@ -10,7 +10,7 @@ import { useState, useEffect, useCallback, FormEvent, SyntheticEvent, useRef } f
 import toast from 'react-hot-toast';
 
 import { client } from '@/client/client.gen';
-import { getAllImages } from "@/client/sdk.gen";
+import { getAllImages, uploadImages } from "@/client/sdk.gen";
 import type { ImageResponse } from "@/client/types.gen";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
@@ -18,6 +18,24 @@ client.setConfig({
   baseUrl: API_BASE_URL
 });
 
+// --- NAVBAR COMPONENT ---
+function Navbar({ onUploadClick }: { onUploadClick: () => void }) {
+  return (
+    <div className="navbar bg-base-100 shadow-lg rounded-box mb-8">
+      <div className="flex-1">
+        <a className="btn btn-ghost text-xl">ImageClustering App</a>
+      </div>
+      <div className="flex-none">
+        <button className="btn btn-primary" onClick={onUploadClick}>
+          Upload Image
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
+// --- UPLOAD MODAL COMPONENT ---
 function ImageUploaderModal({ modalId, onUploadSuccess }: { modalId: string, onUploadSuccess: () => void }) {
   const [files, setFiles] = useState<FileList | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
@@ -37,10 +55,37 @@ function ImageUploaderModal({ modalId, onUploadSuccess }: { modalId: string, onU
     setIsUploading(true);
     const toastId = toast.loading(`Uploading ${files.length} file(s)...`);
 
-    // NOTE: This part will be migrated next.
-    alert("Upload logic needs to be migrated!");
-    setIsUploading(false);
-    toast.dismiss(toastId);
+    try {
+      const response = await uploadImages({
+        body: {
+          files: Array.from(files),
+        },
+      });
+      const responseData = response.data || [];
+      const newImages = responseData.filter(img => !img.is_duplicate);
+      const duplicateImages = responseData.filter(img => img.is_duplicate);
+
+      if (newImages.length > 0) {
+        toast.success(`Successfully uploaded ${newImages.length} new image(s)!`, { id: toastId });
+      } else {
+        toast.dismiss(toastId);
+      }
+
+      duplicateImages.forEach(image => {
+        toast(image.message || `Duplicate: ${image.original_filename}`, { icon: '⚠️', duration: 5000 });
+      });
+
+      setFiles(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      onUploadSuccess();
+      (document.getElementById(modalId) as HTMLDialogElement)?.close();
+
+    } catch (error) {
+      console.error("Upload failed:", error);
+      toast.error('Upload failed. Please check the console.', { id: toastId });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -77,21 +122,17 @@ function ImageUploaderModal({ modalId, onUploadSuccess }: { modalId: string, onU
   );
 }
 
+// --- GALLERY IMAGE COMPONENT ---
 function GalleryImage({ image }: { image: ImageResponse }) {
   const [containerStyle, setContainerStyle] = useState<React.CSSProperties>({
-    width: '150px',
-    height: '200px',
-    opacity: 0,
-    backgroundColor: '#e5e7eb'
+    width: '150px', height: '200px', opacity: 0, backgroundColor: '#e5e7eb'
   });
 
   const handleImageLoad = (e: SyntheticEvent<HTMLImageElement>) => {
     const { naturalWidth, naturalHeight } = e.currentTarget;
     const isLandscape = naturalWidth > naturalHeight;
     setContainerStyle({
-      width: isLandscape ? '355px' : '112.5px',
-      height: '200px',
-      opacity: 1,
+      width: isLandscape ? '355px' : '112.5px', height: '200px', opacity: 1,
     });
   };
 
@@ -105,9 +146,7 @@ function GalleryImage({ image }: { image: ImageResponse }) {
         alt={image.original_filename}
         onLoad={handleImageLoad}
         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-        onError={(e) => {
-          (e.target as HTMLImageElement).src = 'https://placehold.co/400x400/eee/ccc?text=Error';
-        }}
+        onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/400x400/eee/ccc?text=Error'; }}
       />
       <div className="absolute bottom-0 left-0 w-full bg-black bg-opacity-50 p-2 text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100">
         <p className="truncate text-xs font-medium">{image.original_filename}</p>
@@ -116,6 +155,7 @@ function GalleryImage({ image }: { image: ImageResponse }) {
   );
 }
 
+// --- MAIN PAGE COMPONENT ---
 export default function ImageGalleryPage() {
   const [images, setImages] = useState<ImageResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -139,6 +179,10 @@ export default function ImageGalleryPage() {
   useEffect(() => {
     fetchImages();
   }, [fetchImages]);
+
+  const handleUploadClick = () => {
+    (document.getElementById(uploadModalId) as HTMLDialogElement)?.showModal();
+  };
 
   const renderContent = () => {
     if (loading) {
@@ -177,7 +221,7 @@ export default function ImageGalleryPage() {
           <div className="max-w-md">
             <h1 className="text-4xl font-bold">No Images Yet</h1>
             <p className="py-6">Your gallery is empty. Why not upload your first image?</p>
-            <button className="btn btn-primary" onClick={() => (document.getElementById(uploadModalId) as HTMLDialogElement)?.showModal()}>Get Started</button>
+            <button className="btn btn-primary" onClick={handleUploadClick}>Get Started</button>
           </div>
         </div>
       </div>
@@ -187,9 +231,10 @@ export default function ImageGalleryPage() {
   return (
     <>
       <ImageUploaderModal modalId={uploadModalId} onUploadSuccess={fetchImages} />
-      <div className="container mx-auto p-4 sm:p-8">
+      <main className="container mx-auto p-4 sm:p-8">
+        <Navbar onUploadClick={handleUploadClick} />
         {renderContent()}
-      </div>
+      </main>
     </>
   );
 }
