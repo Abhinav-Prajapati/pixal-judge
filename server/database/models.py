@@ -7,6 +7,7 @@ from sqlalchemy import (Column, Integer, String, LargeBinary, DateTime, Boolean,
                         BigInteger, Table, ForeignKey)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.sql import func
 from config import DB_SCHEMA
 
@@ -17,7 +18,6 @@ class ImageBatchAssociation(Base):
     __tablename__ = 'image_batch_association'
     batch_id = Column(ForeignKey(f'{DB_SCHEMA}.image_batches.id'), primary_key=True)
     image_id = Column(ForeignKey(f'{DB_SCHEMA}.images.id'), primary_key=True)
-    
     group_label = Column(String(50), nullable=True)
 
     batch = relationship("ImageBatch", back_populates="image_associations")
@@ -39,7 +39,13 @@ class Image(Base):
     has_thumbnail = Column(Boolean, default=False)
     _features = Column('features', LargeBinary, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
     batch_associations = relationship("ImageBatchAssociation", back_populates="image")
+    
+    batches = association_proxy(
+        "batch_associations", "batch",
+        creator=lambda bch: ImageBatchAssociation(batch=bch)
+    )
 
     @property
     def features(self) -> np.ndarray:
@@ -67,6 +73,12 @@ class ImageBatch(Base):
         "ImageBatchAssociation",
         back_populates="batch",
         cascade="all, delete-orphan"
+    )
+
+    # ADDED creator ARGUMENT
+    images = association_proxy(
+        "image_associations", "image",
+        creator=lambda img: ImageBatchAssociation(image=img)
     )
 
     __table_args__ = {'schema': DB_SCHEMA}
