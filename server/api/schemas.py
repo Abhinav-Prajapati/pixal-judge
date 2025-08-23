@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict
 from typing import List, Dict, Any
 
 class ImageResponse(BaseModel):
-    """Schema for returning image details."""
+    """Schema for returning image details. This model is unchanged."""
     id: int
     filename: str
     original_filename: str
@@ -13,6 +13,12 @@ class ImageResponse(BaseModel):
     has_thumbnail: bool
     is_duplicate: bool = False  
     message: str | None = None  
+    model_config = ConfigDict(from_attributes=True)
+
+class GroupAssociationResponse(BaseModel):
+    """Schema for an image's association within a batch, including its group."""
+    image: ImageResponse
+    group_label: str | None
     model_config = ConfigDict(from_attributes=True)
 
 class BatchCreate(BaseModel):
@@ -39,11 +45,10 @@ class BatchResponse(BaseModel):
     id: int
     batch_name: str
     status: str
-    images: List[ImageResponse] 
     parameters: Dict[str, Any] | None
-    cluster_summary: Dict[str, Any] | None
+    image_associations: List[GroupAssociationResponse]
     model_config = ConfigDict(from_attributes=True)
 
-class BatchClusterUpdate(BaseModel):
-    """Schema for manually updating a batch's cluster map."""
-    cluster_map: Dict[str, List[int]]
+class BatchGroupUpdate(BaseModel):
+    """Schema for manually updating a batch's group map."""
+    group_map: Dict[str, List[int]]

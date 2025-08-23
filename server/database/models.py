@@ -34,7 +34,11 @@ class Image(Base):
     original_filename = Column(String(1024), nullable=False)
     file_path = Column(String(1024), unique=True, nullable=False)
     image_hash = Column(String(255), unique=True, nullable=False)
-
+    file_size = Column(BigInteger)
+    mime_type = Column(String(255))
+    has_thumbnail = Column(Boolean, default=False)
+    _features = Column('features', LargeBinary, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
     batch_associations = relationship("ImageBatchAssociation", back_populates="image")
 
     @property
