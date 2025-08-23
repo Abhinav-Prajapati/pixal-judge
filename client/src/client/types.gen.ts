@@ -20,19 +20,6 @@ export type BatchAnalyze = {
 };
 
 /**
- * BatchClusterUpdate
- * Schema for manually updating a batch's cluster map.
- */
-export type BatchClusterUpdate = {
-    /**
-     * Cluster Map
-     */
-    cluster_map: {
-        [key: string]: Array<number>;
-    };
-};
-
-/**
  * BatchCreate
  * Schema for the initial creation of a batch.
  */
@@ -45,6 +32,19 @@ export type BatchCreate = {
      * Image Ids
      */
     image_ids: Array<number>;
+};
+
+/**
+ * BatchGroupUpdate
+ * Schema for manually updating a batch's group map.
+ */
+export type BatchGroupUpdate = {
+    /**
+     * Group Map
+     */
+    group_map: {
+        [key: string]: Array<number>;
+    };
 };
 
 /**
@@ -76,21 +76,15 @@ export type BatchResponse = {
      */
     status: string;
     /**
-     * Images
-     */
-    images: Array<ImageResponse>;
-    /**
      * Parameters
      */
     parameters: {
         [key: string]: unknown;
     } | null;
     /**
-     * Cluster Summary
+     * Image Associations
      */
-    cluster_summary: {
-        [key: string]: unknown;
-    } | null;
+    image_associations: Array<GroupAssociationResponse>;
 };
 
 /**
@@ -105,6 +99,16 @@ export type BatchUpdateImages = {
 };
 
 /**
+ * Body_uploadAndAddImagesToBatch
+ */
+export type BodyUploadAndAddImagesToBatch = {
+    /**
+     * Files
+     */
+    files: Array<Blob | File>;
+};
+
+/**
  * Body_uploadImages
  */
 export type BodyUploadImages = {
@@ -115,13 +119,15 @@ export type BodyUploadImages = {
 };
 
 /**
- * Body_upload_and_add_to_batch_batches__batch_id__upload_and_add_post
+ * GroupAssociationResponse
+ * Schema for an image's association within a batch, including its group.
  */
-export type BodyUploadAndAddToBatchBatchesBatchIdUploadAndAddPost = {
+export type GroupAssociationResponse = {
+    image: ImageResponse;
     /**
-     * Files
+     * Group Label
      */
-    files: Array<Blob | File>;
+    group_label: string | null;
 };
 
 /**
@@ -136,7 +142,7 @@ export type HttpValidationError = {
 
 /**
  * ImageResponse
- * Schema for returning image details.
+ * Schema for returning image details. This model is unchanged.
  */
 export type ImageResponse = {
     /**
@@ -314,49 +320,49 @@ export type GetImageThumbnailResponses = {
     200: unknown;
 };
 
-export type GetAllBatchesBatchesGetData = {
+export type GetAllBatchesData = {
     body?: never;
     path?: never;
     query?: never;
     url: '/batches/';
 };
 
-export type GetAllBatchesBatchesGetResponses = {
+export type GetAllBatchesResponses = {
     /**
-     * Response Get All Batches Batches  Get
+     * Response Getallbatches
      * Successful Response
      */
     200: Array<BatchResponse>;
 };
 
-export type GetAllBatchesBatchesGetResponse = GetAllBatchesBatchesGetResponses[keyof GetAllBatchesBatchesGetResponses];
+export type GetAllBatchesResponse = GetAllBatchesResponses[keyof GetAllBatchesResponses];
 
-export type CreateBatchBatchesPostData = {
+export type CreateBatchData = {
     body: BatchCreate;
     path?: never;
     query?: never;
     url: '/batches/';
 };
 
-export type CreateBatchBatchesPostErrors = {
+export type CreateBatchErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type CreateBatchBatchesPostError = CreateBatchBatchesPostErrors[keyof CreateBatchBatchesPostErrors];
+export type CreateBatchError = CreateBatchErrors[keyof CreateBatchErrors];
 
-export type CreateBatchBatchesPostResponses = {
+export type CreateBatchResponses = {
     /**
      * Successful Response
      */
     200: BatchResponse;
 };
 
-export type CreateBatchBatchesPostResponse = CreateBatchBatchesPostResponses[keyof CreateBatchBatchesPostResponses];
+export type CreateBatchResponse = CreateBatchResponses[keyof CreateBatchResponses];
 
-export type DeleteBatchBatchesBatchIdDeleteData = {
+export type DeleteBatchData = {
     body?: never;
     path: {
         /**
@@ -368,23 +374,23 @@ export type DeleteBatchBatchesBatchIdDeleteData = {
     url: '/batches/{batch_id}';
 };
 
-export type DeleteBatchBatchesBatchIdDeleteErrors = {
+export type DeleteBatchErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type DeleteBatchBatchesBatchIdDeleteError = DeleteBatchBatchesBatchIdDeleteErrors[keyof DeleteBatchBatchesBatchIdDeleteErrors];
+export type DeleteBatchError = DeleteBatchErrors[keyof DeleteBatchErrors];
 
-export type DeleteBatchBatchesBatchIdDeleteResponses = {
+export type DeleteBatchResponses = {
     /**
      * Successful Response
      */
     200: unknown;
 };
 
-export type GetBatchDetailsBatchesBatchIdGetData = {
+export type GetBatchData = {
     body?: never;
     path: {
         /**
@@ -396,25 +402,25 @@ export type GetBatchDetailsBatchesBatchIdGetData = {
     url: '/batches/{batch_id}';
 };
 
-export type GetBatchDetailsBatchesBatchIdGetErrors = {
+export type GetBatchErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type GetBatchDetailsBatchesBatchIdGetError = GetBatchDetailsBatchesBatchIdGetErrors[keyof GetBatchDetailsBatchesBatchIdGetErrors];
+export type GetBatchError = GetBatchErrors[keyof GetBatchErrors];
 
-export type GetBatchDetailsBatchesBatchIdGetResponses = {
+export type GetBatchResponses = {
     /**
      * Successful Response
      */
     200: BatchResponse;
 };
 
-export type GetBatchDetailsBatchesBatchIdGetResponse = GetBatchDetailsBatchesBatchIdGetResponses[keyof GetBatchDetailsBatchesBatchIdGetResponses];
+export type GetBatchResponse = GetBatchResponses[keyof GetBatchResponses];
 
-export type RenameBatchBatchesBatchIdPutData = {
+export type RenameBatchData = {
     body: BatchRename;
     path: {
         /**
@@ -426,25 +432,25 @@ export type RenameBatchBatchesBatchIdPutData = {
     url: '/batches/{batch_id}';
 };
 
-export type RenameBatchBatchesBatchIdPutErrors = {
+export type RenameBatchErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type RenameBatchBatchesBatchIdPutError = RenameBatchBatchesBatchIdPutErrors[keyof RenameBatchBatchesBatchIdPutErrors];
+export type RenameBatchError = RenameBatchErrors[keyof RenameBatchErrors];
 
-export type RenameBatchBatchesBatchIdPutResponses = {
+export type RenameBatchResponses = {
     /**
      * Successful Response
      */
     200: BatchResponse;
 };
 
-export type RenameBatchBatchesBatchIdPutResponse = RenameBatchBatchesBatchIdPutResponses[keyof RenameBatchBatchesBatchIdPutResponses];
+export type RenameBatchResponse = RenameBatchResponses[keyof RenameBatchResponses];
 
-export type RemoveImagesFromBatchBatchesBatchIdImagesDeleteData = {
+export type RemoveImagesFromBatchData = {
     body: BatchUpdateImages;
     path: {
         /**
@@ -456,25 +462,25 @@ export type RemoveImagesFromBatchBatchesBatchIdImagesDeleteData = {
     url: '/batches/{batch_id}/images';
 };
 
-export type RemoveImagesFromBatchBatchesBatchIdImagesDeleteErrors = {
+export type RemoveImagesFromBatchErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type RemoveImagesFromBatchBatchesBatchIdImagesDeleteError = RemoveImagesFromBatchBatchesBatchIdImagesDeleteErrors[keyof RemoveImagesFromBatchBatchesBatchIdImagesDeleteErrors];
+export type RemoveImagesFromBatchError = RemoveImagesFromBatchErrors[keyof RemoveImagesFromBatchErrors];
 
-export type RemoveImagesFromBatchBatchesBatchIdImagesDeleteResponses = {
+export type RemoveImagesFromBatchResponses = {
     /**
      * Successful Response
      */
     200: BatchResponse;
 };
 
-export type RemoveImagesFromBatchBatchesBatchIdImagesDeleteResponse = RemoveImagesFromBatchBatchesBatchIdImagesDeleteResponses[keyof RemoveImagesFromBatchBatchesBatchIdImagesDeleteResponses];
+export type RemoveImagesFromBatchResponse = RemoveImagesFromBatchResponses[keyof RemoveImagesFromBatchResponses];
 
-export type AddImagesToBatchBatchesBatchIdImagesPostData = {
+export type AddImagesToBatchData = {
     body: BatchUpdateImages;
     path: {
         /**
@@ -486,26 +492,26 @@ export type AddImagesToBatchBatchesBatchIdImagesPostData = {
     url: '/batches/{batch_id}/images';
 };
 
-export type AddImagesToBatchBatchesBatchIdImagesPostErrors = {
+export type AddImagesToBatchErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type AddImagesToBatchBatchesBatchIdImagesPostError = AddImagesToBatchBatchesBatchIdImagesPostErrors[keyof AddImagesToBatchBatchesBatchIdImagesPostErrors];
+export type AddImagesToBatchError = AddImagesToBatchErrors[keyof AddImagesToBatchErrors];
 
-export type AddImagesToBatchBatchesBatchIdImagesPostResponses = {
+export type AddImagesToBatchResponses = {
     /**
      * Successful Response
      */
     200: BatchResponse;
 };
 
-export type AddImagesToBatchBatchesBatchIdImagesPostResponse = AddImagesToBatchBatchesBatchIdImagesPostResponses[keyof AddImagesToBatchBatchesBatchIdImagesPostResponses];
+export type AddImagesToBatchResponse = AddImagesToBatchResponses[keyof AddImagesToBatchResponses];
 
-export type UploadAndAddToBatchBatchesBatchIdUploadAndAddPostData = {
-    body: BodyUploadAndAddToBatchBatchesBatchIdUploadAndAddPost;
+export type UploadAndAddImagesToBatchData = {
+    body: BodyUploadAndAddImagesToBatch;
     path: {
         /**
          * Batch Id
@@ -516,25 +522,25 @@ export type UploadAndAddToBatchBatchesBatchIdUploadAndAddPostData = {
     url: '/batches/{batch_id}/upload-and-add';
 };
 
-export type UploadAndAddToBatchBatchesBatchIdUploadAndAddPostErrors = {
+export type UploadAndAddImagesToBatchErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type UploadAndAddToBatchBatchesBatchIdUploadAndAddPostError = UploadAndAddToBatchBatchesBatchIdUploadAndAddPostErrors[keyof UploadAndAddToBatchBatchesBatchIdUploadAndAddPostErrors];
+export type UploadAndAddImagesToBatchError = UploadAndAddImagesToBatchErrors[keyof UploadAndAddImagesToBatchErrors];
 
-export type UploadAndAddToBatchBatchesBatchIdUploadAndAddPostResponses = {
+export type UploadAndAddImagesToBatchResponses = {
     /**
      * Successful Response
      */
     200: BatchResponse;
 };
 
-export type UploadAndAddToBatchBatchesBatchIdUploadAndAddPostResponse = UploadAndAddToBatchBatchesBatchIdUploadAndAddPostResponses[keyof UploadAndAddToBatchBatchesBatchIdUploadAndAddPostResponses];
+export type UploadAndAddImagesToBatchResponse = UploadAndAddImagesToBatchResponses[keyof UploadAndAddImagesToBatchResponses];
 
-export type AnalyzeBatchBatchesBatchIdAnalyzePutData = {
+export type AnalyzeBatchData = {
     body: BatchAnalyze;
     path: {
         /**
@@ -546,26 +552,26 @@ export type AnalyzeBatchBatchesBatchIdAnalyzePutData = {
     url: '/batches/{batch_id}/analyze';
 };
 
-export type AnalyzeBatchBatchesBatchIdAnalyzePutErrors = {
+export type AnalyzeBatchErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type AnalyzeBatchBatchesBatchIdAnalyzePutError = AnalyzeBatchBatchesBatchIdAnalyzePutErrors[keyof AnalyzeBatchBatchesBatchIdAnalyzePutErrors];
+export type AnalyzeBatchError = AnalyzeBatchErrors[keyof AnalyzeBatchErrors];
 
-export type AnalyzeBatchBatchesBatchIdAnalyzePutResponses = {
+export type AnalyzeBatchResponses = {
     /**
      * Successful Response
      */
     200: BatchResponse;
 };
 
-export type AnalyzeBatchBatchesBatchIdAnalyzePutResponse = AnalyzeBatchBatchesBatchIdAnalyzePutResponses[keyof AnalyzeBatchBatchesBatchIdAnalyzePutResponses];
+export type AnalyzeBatchResponse = AnalyzeBatchResponses[keyof AnalyzeBatchResponses];
 
-export type UpdateClustersBatchesBatchIdClustersPutData = {
-    body: BatchClusterUpdate;
+export type UpdateGroupsInBatchData = {
+    body: BatchGroupUpdate;
     path: {
         /**
          * Batch Id
@@ -573,26 +579,26 @@ export type UpdateClustersBatchesBatchIdClustersPutData = {
         batch_id: number;
     };
     query?: never;
-    url: '/batches/{batch_id}/clusters';
+    url: '/batches/{batch_id}/groups';
 };
 
-export type UpdateClustersBatchesBatchIdClustersPutErrors = {
+export type UpdateGroupsInBatchErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type UpdateClustersBatchesBatchIdClustersPutError = UpdateClustersBatchesBatchIdClustersPutErrors[keyof UpdateClustersBatchesBatchIdClustersPutErrors];
+export type UpdateGroupsInBatchError = UpdateGroupsInBatchErrors[keyof UpdateGroupsInBatchErrors];
 
-export type UpdateClustersBatchesBatchIdClustersPutResponses = {
+export type UpdateGroupsInBatchResponses = {
     /**
      * Successful Response
      */
     200: BatchResponse;
 };
 
-export type UpdateClustersBatchesBatchIdClustersPutResponse = UpdateClustersBatchesBatchIdClustersPutResponses[keyof UpdateClustersBatchesBatchIdClustersPutResponses];
+export type UpdateGroupsInBatchResponse = UpdateGroupsInBatchResponses[keyof UpdateGroupsInBatchResponses];
 
 export type ReadRootGetData = {
     body?: never;
@@ -609,5 +615,5 @@ export type ReadRootGetResponses = {
 };
 
 export type ClientOptions = {
-    baseUrl: `${string}://openapi.json` | (string & {});
+    baseUrl: `${string}://${string}` | (string & {});
 };
