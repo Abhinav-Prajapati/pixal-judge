@@ -1,8 +1,19 @@
-import { defineConfig } from "@hey-api/openapi-ts";
+import { defineConfig } from '@hey-api/openapi-ts';
 
 export default defineConfig({
-  input: "openapi.json",
-  output: "src/client",
-  name: "PixalJudgeApi",
-  useOptions: true,
+  input: './openapi.json',
+  output: {
+    format: 'prettier',
+    path: './src/client',
+  },
+  plugins: [
+    '@hey-api/schemas',
+    {
+      name: '@hey-api/typescript',
+    },
+    {
+      name: '@hey-api/sdk',
+    },
+    '@tanstack/react-query',
+  ],
 });
