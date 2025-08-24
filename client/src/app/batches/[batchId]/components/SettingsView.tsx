@@ -1,24 +1,31 @@
 'use client'
 import { useState, useEffect } from "react";
-import { useBatchStore } from "../store/useBatchStore";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { analyzeBatchMutation } from "@/client/@tanstack/react-query.gen";
+import { useParams } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  getBatchOptions,
+  getBatchQueryKey,
+  analyzeBatchMutation
+} from "@/client/@tanstack/react-query.gen";
 
 export function SettingsView() {
-  const { batch } = useBatchStore();
+  const params = useParams();
   const queryClient = useQueryClient();
+
+  const batchId = Number(params.batchId);
+
+  const { data: batch, isLoading: isBatchLoading } = useQuery({
+    ...getBatchOptions({ path: { batch_id: batchId } }),
+    enabled: !isNaN(batchId),
+  });
 
   const [sensitivity, setSensitivity] = useState(0.5);
   const [minImages, setMinImages] = useState(1);
 
   const analyzeMutation = useMutation({
     mutationFn: analyzeBatchMutation().mutationFn,
-    onSuccess: (data) => {
-      // Assuming the analysis updates the batch, we can invalidate the cache
-      // for the getBatch query to refetch the latest data.
-      if (data && batch) {
-        queryClient.invalidateQueries({ queryKey: ['getBatch', { _id: 'getBatch', path: { batch_id: batch.id } }] });
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: getBatchQueryKey({ path: { batch_id: batchId } }) });
     },
     onError: (error) => {
       console.error("Analysis failed:", error);
@@ -48,7 +55,7 @@ export function SettingsView() {
     });
   };
 
-  const loading = analyzeMutation.isPending;
+  const isLoading = isBatchLoading || analyzeMutation.isPending;
 
   return (
     <div className="px-3 py-2">
@@ -56,9 +63,9 @@ export function SettingsView() {
         <button
           className="flex items-center justify-center gap-2 px-4 py-2 text-sm rounded-full bg-base-100 hover:bg-white/20 transition-colors w-32 disabled:bg-base-300 disabled:cursor-not-allowed"
           onClick={handleAnalyze}
-          disabled={!batch || loading}
+          disabled={!batch || isLoading}
         >
-          {loading ? "Analyzing..." : "Analysis"}
+          {analyzeMutation.isPending ? "Analyzing..." : "Analysis"}
         </button>
       </div>
 
@@ -71,7 +78,7 @@ export function SettingsView() {
           <button
             className="btn join-item"
             onClick={() => setMinImages((prev) => Math.max(1, prev - 1))}
-            disabled={loading}
+            disabled={isLoading}
           >
             -
           </button>
@@ -80,12 +87,12 @@ export function SettingsView() {
             value={minImages}
             onChange={(e) => setMinImages(Math.max(1, Number(e.target.value)))}
             className="input input-bordered join-item w-20 text-center"
-            disabled={loading}
+            disabled={isLoading}
           />
           <button
             className="btn join-item"
             onClick={() => setMinImages((prev) => prev + 1)}
-            disabled={loading}
+            disabled={isLoading}
           >
             +
           </button>
@@ -106,7 +113,7 @@ export function SettingsView() {
           value={sensitivity}
           onChange={(e) => setSensitivity(parseFloat(e.target.value))}
           className="range range-xs range-primary"
-          disabled={loading}
+          disabled={isLoading}
         />
       </div>
     </div>
