@@ -9,7 +9,7 @@ from database.database import get_db
 from services import image_service
 from crud import crud_image
 from .schemas import ImageResponse
-from .tasks import process_image_in_background
+from .tasks import generate_thumbnail_task, generate_embedding_task, extract_metadata_task
 from database.models import Image as ImageModel
 from config import THUMB_DIR
 
@@ -18,14 +18,26 @@ router = APIRouter(prefix="/images", tags=["Images"])
 
 @router.post("/upload", response_model=List[ImageResponse], operation_id="uploadImages")
 def upload_images(
-    background_tasks: BackgroundTasks, db: Session = Depends(get_db), files: List[UploadFile] = File(...)
+    background_tasks: BackgroundTasks, 
+    db: Session = Depends(get_db), 
+    files: List[UploadFile] = File(...)
 ):
+    """
+    Uploads one or more image files. For each new image, it queues background
+    tasks for metadata extraction, thumbnail generation, and feature embedding.
+    """
     results = image_service.process_new_uploads(db=db, files=files)
+    
     if not results:
-        raise HTTPException(status_code=400, detail="No images processed successfully.")
+        raise HTTPException(status_code=400, detail="No images were processed successfully.")
+    
     for res in results:
         if isinstance(res, ImageModel):
-             background_tasks.add_task(process_image_in_background, res.id)
+            image_id = res.id
+            logger.info(f"Queuing background tasks for NEW image_id: {image_id}")
+            background_tasks.add_task(generate_thumbnail_task, image_id)
+            background_tasks.add_task(generate_embedding_task, image_id)
+            
     return results
 
 @router.get("/", response_model=List[ImageResponse], operation_id="getAllImages")

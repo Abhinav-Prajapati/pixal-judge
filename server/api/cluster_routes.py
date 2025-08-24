@@ -7,7 +7,7 @@ from services import batch_service
 from crud import crud_batch
 from .schemas import *
 from services.batch_service import BatchServiceError
-from .tasks import process_image_in_background
+from .tasks import generate_thumbnail_task, generate_embedding_task
 from database.models import Image as ImageModel
 
 router = APIRouter(prefix="/batches", tags=["Grouping Batches"])
@@ -56,11 +56,16 @@ def add_images_to_batch(batch_id: int, image_data: BatchUpdateImages, db: Sessio
 def upload_and_add_to_batch(
     batch_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db), files: List[UploadFile] = File(...)
 ):
+    """
+    Uploads new images, adds them to the batch, and queues background tasks for processing.
+    """
     try:
         updated_batch, upload_results = batch_service.upload_and_add(db, batch_id=batch_id, files=files)
         for res in upload_results:
             if isinstance(res, ImageModel):
-                background_tasks.add_task(process_image_in_background, res.id)
+                image_id = res.id
+                background_tasks.add_task(generate_thumbnail_task, image_id)
+                background_tasks.add_task(generate_embedding_task, image_id)
         return updated_batch
     except BatchServiceError as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
