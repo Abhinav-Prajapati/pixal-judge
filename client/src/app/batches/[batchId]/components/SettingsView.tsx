@@ -1,12 +1,29 @@
 'use client'
 import { useState, useEffect } from "react";
 import { useBatchStore } from "../store/useBatchStore";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { analyzeBatchMutation } from "@/client/@tanstack/react-query.gen";
 
 export function SettingsView() {
-  const { batch, analyzeBatch, loading } = useBatchStore();
+  const { batch } = useBatchStore();
+  const queryClient = useQueryClient();
 
   const [sensitivity, setSensitivity] = useState(0.5);
   const [minImages, setMinImages] = useState(1);
+
+  const analyzeMutation = useMutation({
+    mutationFn: analyzeBatchMutation().mutationFn,
+    onSuccess: (data) => {
+      // Assuming the analysis updates the batch, we can invalidate the cache
+      // for the getBatch query to refetch the latest data.
+      if (data && batch) {
+        queryClient.invalidateQueries({ queryKey: ['getBatch', { _id: 'getBatch', path: { batch_id: batch.id } }] });
+      }
+    },
+    onError: (error) => {
+      console.error("Analysis failed:", error);
+    },
+  });
 
   useEffect(() => {
     if (batch?.parameters) {
@@ -22,11 +39,16 @@ export function SettingsView() {
   const handleAnalyze = () => {
     if (!batch) return;
 
-    analyzeBatch({
-      eps: sensitivity,
-      min_samples: minImages,
+    analyzeMutation.mutate({
+      path: { batch_id: batch.id },
+      body: {
+        eps: sensitivity,
+        min_samples: minImages,
+      },
     });
   };
+
+  const loading = analyzeMutation.isPending;
 
   return (
     <div className="px-3 py-2">
@@ -49,7 +71,7 @@ export function SettingsView() {
           <button
             className="btn join-item"
             onClick={() => setMinImages((prev) => Math.max(1, prev - 1))}
-            disabled={loading} // Disable controls during analysis
+            disabled={loading}
           >
             -
           </button>
