@@ -1,16 +1,21 @@
-/*
-  File: app/page.tsx
-
-  This is a Next.js client component that displays an image gallery and
-  includes a modal to upload new images with toast notifications.
-*/
 "use client";
 
-import { useState, useEffect, useCallback, FormEvent, SyntheticEvent, useRef } from "react";
+import { useState, FormEvent, SyntheticEvent, useRef } from "react";
 import toast from 'react-hot-toast';
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+  useMutation,
+  useQueryClient
+} from '@tanstack/react-query';
 
 import { client } from '@/client/client.gen';
-import { getAllImages, uploadImages } from "@/client/sdk.gen";
+import {
+  getAllImagesOptions,
+  uploadImagesMutation,
+  getAllImagesQueryKey
+} from '../client/@tanstack/react-query.gen';
 import type { ImageResponse } from "@/client/types.gen";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
@@ -18,7 +23,8 @@ client.setConfig({
   baseUrl: API_BASE_URL
 });
 
-// --- NAVBAR COMPONENT ---
+const queryClient = new QueryClient();
+
 function Navbar({ onUploadClick }: { onUploadClick: () => void }) {
   return (
     <div className="navbar bg-base-100 shadow-lg rounded-box mb-8">
@@ -34,58 +40,54 @@ function Navbar({ onUploadClick }: { onUploadClick: () => void }) {
   );
 }
 
-
-// --- UPLOAD MODAL COMPONENT ---
-function ImageUploaderModal({ modalId, onUploadSuccess }: { modalId: string, onUploadSuccess: () => void }) {
+function ImageUploaderModal({ modalId }: { modalId: string }) {
   const [files, setFiles] = useState<FileList | null>(null);
-  const [isUploading, setIsUploading] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
+
+  const uploadMutation = useMutation(uploadImagesMutation());
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFiles(e.target.files);
   };
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!files || files.length === 0) {
       toast.error('Please select at least one file to upload.');
       return;
     }
 
-    setIsUploading(true);
     const toastId = toast.loading(`Uploading ${files.length} file(s)...`);
 
-    try {
-      const response = await uploadImages({
-        body: {
-          files: Array.from(files),
-        },
-      });
-      const responseData = response.data || [];
-      const newImages = responseData.filter(img => !img.is_duplicate);
-      const duplicateImages = responseData.filter(img => img.is_duplicate);
+    uploadMutation.mutate({
+      body: { files: Array.from(files) }
+    }, {
+      onSuccess: (data) => {
+        const responseData = data || [];
+        const newImages = responseData.filter(img => !img.is_duplicate);
+        const duplicateImages = responseData.filter(img => img.is_duplicate);
 
-      if (newImages.length > 0) {
-        toast.success(`Successfully uploaded ${newImages.length} new image(s)!`, { id: toastId });
-      } else {
-        toast.dismiss(toastId);
+        if (newImages.length > 0) {
+          toast.success(`Successfully uploaded ${newImages.length} new image(s)!`, { id: toastId });
+        } else {
+          toast.dismiss(toastId);
+        }
+
+        duplicateImages.forEach(image => {
+          toast(image.message || `Duplicate: ${image.original_filename}`, { icon: '⚠️', duration: 5000 });
+        });
+
+        setFiles(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        queryClient.invalidateQueries({ queryKey: getAllImagesQueryKey() });
+        (document.getElementById(modalId) as HTMLDialogElement)?.close();
+      },
+      onError: (error) => {
+        console.error("Upload failed:", error);
+        toast.error('Upload failed. Please check the console.', { id: toastId });
       }
-
-      duplicateImages.forEach(image => {
-        toast(image.message || `Duplicate: ${image.original_filename}`, { icon: '⚠️', duration: 5000 });
-      });
-
-      setFiles(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      onUploadSuccess();
-      (document.getElementById(modalId) as HTMLDialogElement)?.close();
-
-    } catch (error) {
-      console.error("Upload failed:", error);
-      toast.error('Upload failed. Please check the console.', { id: toastId });
-    } finally {
-      setIsUploading(false);
-    }
+    });
   };
 
   return (
@@ -106,11 +108,11 @@ function ImageUploaderModal({ modalId, onUploadSuccess }: { modalId: string, onU
             <button type="button" className="btn" onClick={() => (document.getElementById(modalId) as HTMLDialogElement)?.close()}>Cancel</button>
             <button
               type="submit"
-              disabled={isUploading || !files || files.length === 0}
+              disabled={uploadMutation.isPending || !files || files.length === 0}
               className="btn btn-primary"
             >
-              {isUploading && <span className="loading loading-spinner"></span>}
-              {isUploading ? 'Uploading...' : 'Upload'}
+              {uploadMutation.isPending && <span className="loading loading-spinner"></span>}
+              {uploadMutation.isPending ? 'Uploading...' : 'Upload'}
             </button>
           </div>
         </form>
@@ -156,29 +158,9 @@ function GalleryImage({ image }: { image: ImageResponse }) {
 }
 
 // --- MAIN PAGE COMPONENT ---
-export default function ImageGalleryPage() {
-  const [images, setImages] = useState<ImageResponse[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+function ImageGalleryPage() {
   const uploadModalId = "upload_modal";
-
-  const fetchImages = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await getAllImages();
-      setImages(response.data || []);
-      setError(null);
-    } catch (e) {
-      console.error("Failed to fetch images:", e);
-      setError("Could not connect to the API. Please ensure the backend server is running.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchImages();
-  }, [fetchImages]);
+  const { data: images = [], isLoading: loading, error } = useQuery(getAllImagesOptions());
 
   const handleUploadClick = () => {
     (document.getElementById(uploadModalId) as HTMLDialogElement)?.showModal();
@@ -199,7 +181,7 @@ export default function ImageGalleryPage() {
           <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           <div>
             <h3 className="font-bold">An Error Occurred!</h3>
-            <div className="text-xs">{error}</div>
+            <div className="text-xs">Could not connect to the API. Please ensure the backend server is running.</div>
           </div>
         </div>
       );
@@ -230,11 +212,20 @@ export default function ImageGalleryPage() {
 
   return (
     <>
-      <ImageUploaderModal modalId={uploadModalId} onUploadSuccess={fetchImages} />
+      <ImageUploaderModal modalId={uploadModalId} />
       <main className="container mx-auto p-4 sm:p-8">
         <Navbar onUploadClick={handleUploadClick} />
         {renderContent()}
       </main>
     </>
+  );
+}
+
+// --- PROVIDER WRAPPER ---
+export default function ImageGalleryPageWrapper() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ImageGalleryPage />
+    </QueryClientProvider>
   );
 }
