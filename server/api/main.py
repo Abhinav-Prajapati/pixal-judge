@@ -6,6 +6,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from . import image_routes, cluster_routes
+from utils.file_handling import setup_directories
 
 logging.basicConfig(
     level=logging.INFO,
@@ -31,6 +32,13 @@ app.add_middleware(
     allow_methods=["*"], # Allows all methods
     allow_headers=["*"], # Allows all headers
 )
+
+@app.on_event("startup")
+async def startup_event():
+    """Create necessary directories on application startup."""
+    logging.info("Running startup tasks...")
+    setup_directories()
+    logging.info("Asset directories are set up.")
 
 app.include_router(image_routes.router)
 app.include_router(cluster_routes.router)
