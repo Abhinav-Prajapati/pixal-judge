@@ -1,47 +1,43 @@
-/*
-  File: app/batches/page.tsx
-  This is a client component for managing clustering batches. It allows users
-  to view existing batches and create new ones via a modal, styled with DaisyUI.
-*/
 "use client";
 
-import { useState, useEffect, FormEvent, useCallback, useRef } from 'react';
+import { useState, FormEvent, useRef } from 'react';
 import Link from 'next/link';
-import { getAllBatches, createBatch, getAllImages } from '@/client/sdk.gen';
-import type { BatchResponse, ImageResponse } from '@/client/types.gen';
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+  useMutation,
+  useQueryClient
+} from '@tanstack/react-query';
+
 import { client } from '@/client/client.gen';
+import {
+  getAllBatchesOptions,
+  createBatchMutation,
+  getAllImagesOptions,
+  getAllBatchesQueryKey
+} from '../../client/@tanstack/react-query.gen';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 client.setConfig({
   baseUrl: API_BASE_URL
 });
 
-function CreateBatchModal({ modalId, onBatchCreated }: { modalId: string; onBatchCreated: () => void; }) {
-  const [allImages, setAllImages] = useState<ImageResponse[]>([]);
+const queryClient = new QueryClient();
+
+
+function CreateBatchModal({ modalId }: { modalId: string; }) {
   const [selectedImageIds, setSelectedImageIds] = useState<Set<number>>(new Set());
   const [batchName, setBatchName] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const reactQueryClient = useQueryClient();
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.attributeName === 'open' && dialog?.open && allImages.length === 0) {
-          setIsLoading(true);
-          getAllImages({ throwOnError: true })
-            .then(response => setAllImages(response.data))
-            .catch(() => setError("Failed to load images for selection."))
-            .finally(() => setIsLoading(false));
-        }
-      });
-    });
-    if (dialog) {
-      observer.observe(dialog, { attributes: true });
-    }
-    return () => observer.disconnect();
-  }, [allImages.length]);
+  // Fetch all images using React Query. Data will be cached.
+  const { data: allImages = [], isLoading: isLoadingImages } = useQuery(getAllImagesOptions());
+
+  // Mutation for creating a new batch
+  const createBatch = useMutation(createBatchMutation());
 
   const handleImageSelect = (imageId: number) => {
     setSelectedImageIds(prev => {
@@ -66,29 +62,34 @@ function CreateBatchModal({ modalId, onBatchCreated }: { modalId: string; onBatc
     dialogRef.current?.close();
   };
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!batchName.trim()) {
       setError("Please provide a batch name.");
       return;
     }
-    setError(null);
-    setIsLoading(true);
-    try {
-      await createBatch({
-        body: {
-          name: batchName,
-          image_ids: Array.from(selectedImageIds),
-        }
-      });
-      onBatchCreated();
-      handleClose();
-    } catch (err) {
-      setError("Failed to create batch. Please try again.");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
+    if (selectedImageIds.size === 0) {
+      setError("Please select at least one image.");
+      return;
     }
+    setError(null);
+
+    createBatch.mutate({
+      body: {
+        name: batchName,
+        image_ids: Array.from(selectedImageIds),
+      }
+    }, {
+      onSuccess: () => {
+        // On success, invalidate the batches query to refetch the list
+        reactQueryClient.invalidateQueries({ queryKey: getAllBatchesQueryKey() });
+        handleClose();
+      },
+      onError: (err) => {
+        setError("Failed to create batch. Please try again.");
+        console.error(err);
+      }
+    });
   };
 
   return (
@@ -107,7 +108,7 @@ function CreateBatchModal({ modalId, onBatchCreated }: { modalId: string; onBatc
           </div>
           <p className="mb-2 font-semibold">Select Images ({selectedImageIds.size} selected)</p>
           <div className="flex-grow border border-base-300 bg-base-200 rounded-lg p-2 overflow-y-auto">
-            {isLoading && <div className="flex justify-center p-4"><span className="loading loading-spinner"></span></div>}
+            {isLoadingImages && <div className="flex justify-center p-4"><span className="loading loading-spinner"></span></div>}
             <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
               {allImages.map(img => (
                 <div key={img.id} onClick={() => handleImageSelect(img.id)} className={`relative aspect-square rounded-md overflow-hidden cursor-pointer ring-offset-base-100 ring-offset-2 ${selectedImageIds.has(img.id) ? 'ring-2 ring-primary' : ''}`}>
@@ -120,9 +121,9 @@ function CreateBatchModal({ modalId, onBatchCreated }: { modalId: string; onBatc
           {error && <p className="text-error text-sm mt-2">{error}</p>}
           <div className="modal-action mt-4">
             <button type="button" onClick={handleClose} className="btn">Cancel</button>
-            <button type="submit" disabled={isLoading} className="btn btn-primary">
-              {isLoading && <span className="loading loading-spinner"></span>}
-              {isLoading ? 'Creating...' : 'Create Batch'}
+            <button type="submit" disabled={createBatch.isPending} className="btn btn-primary">
+              {createBatch.isPending && <span className="loading loading-spinner"></span>}
+              {createBatch.isPending ? 'Creating...' : 'Create Batch'}
             </button>
           </div>
         </form>
@@ -133,37 +134,14 @@ function CreateBatchModal({ modalId, onBatchCreated }: { modalId: string; onBatc
     </dialog>
   );
 }
-// --- Main Batches Page Component ---
-export default function BatchesPage() {
-  const [batches, setBatches] = useState<BatchResponse[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+
+// --- MAIN BATCHES PAGE COMPONENT ---
+function BatchesPage() {
   const modalId = "create_batch_modal";
-  // In your BatchesPage component...
-
-  const fetchBatches = useCallback(() => {
-    setLoading(true);
-    getAllBatches({ throwOnError: true })
-      .then(response => {
-        // --- ADD THIS LOG ---
-        console.log("Full API response object:", response);
-        console.log("Value of response.data:", response.data);
-
-        setBatches(response.data);
-      })
-      .catch(e => {
-        console.error("Failed to fetch batches:", e);
-        setError("Could not connect to the API.");
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    fetchBatches();
-  }, [fetchBatches]);
+  const { data: batches = [], isLoading, error } = useQuery(getAllBatchesOptions());
 
   const renderContent = () => {
-    if (loading) {
+    if (isLoading) {
       return <div className="text-center py-12"><span className="loading loading-spinner loading-lg"></span></div>;
     }
 
@@ -171,13 +149,11 @@ export default function BatchesPage() {
       return (
         <div role="alert" className="alert alert-error">
           <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          <div><h3 className="font-bold">An Error Occurred</h3><div className="text-xs">{error}</div></div>
+          <div><h3 className="font-bold">An Error Occurred</h3><div className="text-xs">Could not connect to the API.</div></div>
         </div>
       );
     }
 
-    // --- FIX APPLIED HERE ---
-    // This check now safely verifies that `batches` is an array and has items before mapping.
     if (Array.isArray(batches) && batches.length > 0) {
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -214,7 +190,7 @@ export default function BatchesPage() {
 
   return (
     <>
-      <CreateBatchModal modalId={modalId} onBatchCreated={fetchBatches} />
+      <CreateBatchModal modalId={modalId} />
       <div className="container mx-auto px-4 py-8">
         <header className="flex justify-between items-center mb-8">
           <div>
@@ -228,5 +204,14 @@ export default function BatchesPage() {
         {renderContent()}
       </div>
     </>
+  );
+}
+
+// --- PROVIDER WRAPPER ---
+export default function BatchesPageWrapper() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BatchesPage />
+    </QueryClientProvider>
   );
 }
