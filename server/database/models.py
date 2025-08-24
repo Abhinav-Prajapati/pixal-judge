@@ -4,7 +4,7 @@ These classes map directly to the 'images' and 'image_batches' tables.
 """
 import numpy as np
 from sqlalchemy import (Column, Integer, String, LargeBinary, DateTime, Boolean, 
-                        BigInteger, Table, ForeignKey)
+                        BigInteger, Table, ForeignKey, Float, Text)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.ext.associationproxy import association_proxy
@@ -12,19 +12,6 @@ from sqlalchemy.sql import func
 from config import DB_SCHEMA
 
 Base = declarative_base()
-
-class ImageBatchAssociation(Base):
-    """This is the Association Object that links an Image to a Batch."""
-    __tablename__ = 'image_batch_association'
-    batch_id = Column(ForeignKey(f'{DB_SCHEMA}.image_batches.id'), primary_key=True)
-    image_id = Column(ForeignKey(f'{DB_SCHEMA}.images.id'), primary_key=True)
-    group_label = Column(String(50), nullable=True)
-
-    batch = relationship("ImageBatch", back_populates="image_associations")
-    image = relationship("Image", back_populates="batch_associations")
-    
-    __table_args__ = {'schema': DB_SCHEMA}
-
 
 class Image(Base):
     """Represents an image file and its associated metadata and features."""
@@ -39,6 +26,29 @@ class Image(Base):
     has_thumbnail = Column(Boolean, default=False)
     _features = Column('features', LargeBinary, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Essential Attributes
+    width = Column(Integer, nullable=True)
+    height = Column(Integer, nullable=True)
+    orientation = Column(Integer, default=1, nullable=True) 
+    shot_at = Column(DateTime(timezone=True), nullable=True) 
+
+    # Geolocation Data
+    latitude = Column(Float, nullable=True) 
+    longitude = Column(Float, nullable=True)
+
+    # Camera & Exposure Details
+    camera_make = Column(String(100), nullable=True)
+    camera_model = Column(String(100), nullable=True)
+    focal_length = Column(String(50), nullable=True)
+    f_number = Column(Float, nullable=True)
+    exposure_time = Column(String(50), nullable=True)
+    iso = Column(Integer, nullable=True)
+
+    # User-Generated & Derived Data
+    caption = Column(Text, nullable=True)
+    tags = Column(JSONB, nullable=True) 
+    rating = Column(Integer, nullable=True) 
 
     batch_associations = relationship("ImageBatchAssociation", back_populates="image")
     
@@ -75,10 +85,21 @@ class ImageBatch(Base):
         cascade="all, delete-orphan"
     )
 
-    # ADDED creator ARGUMENT
     images = association_proxy(
         "image_associations", "image",
         creator=lambda img: ImageBatchAssociation(image=img)
     )
 
+    __table_args__ = {'schema': DB_SCHEMA}
+
+class ImageBatchAssociation(Base):
+    """This is the Association Object that links an Image to a Batch."""
+    __tablename__ = 'image_batch_association'
+    batch_id = Column(ForeignKey(f'{DB_SCHEMA}.image_batches.id'), primary_key=True)
+    image_id = Column(ForeignKey(f'{DB_SCHEMA}.images.id'), primary_key=True)
+    group_label = Column(String(50), nullable=True)
+
+    batch = relationship("ImageBatch", back_populates="image_associations")
+    image = relationship("Image", back_populates="batch_associations")
+    
     __table_args__ = {'schema': DB_SCHEMA}

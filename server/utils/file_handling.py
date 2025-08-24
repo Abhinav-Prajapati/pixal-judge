@@ -1,5 +1,6 @@
 """
 Handles all file system operations like saving, deleting, and thumbnailing images.
+This module is decoupled from the database and business logic.
 """
 import shutil
 import uuid
@@ -8,9 +9,9 @@ import hashlib
 from pathlib import Path
 from fastapi import UploadFile
 from PIL import Image, ImageOps
-from sqlalchemy.orm import Session
+
+# Local application imports
 from database.models import Image as ImageModel
-from api.schemas import ImageResponse
 from config import IMAGE_DIR, THUMB_DIR, THUMB_SIZES
 
 logger = logging.getLogger(__name__)
@@ -21,70 +22,45 @@ def setup_directories():
     THUMB_DIR.mkdir(parents=True, exist_ok=True)
 
 def _calculate_file_hash(file: UploadFile) -> str:
-    """Calculates the SHA-256 hash of a file in chunks."""
+    """
+    Calculates the SHA-256 hash of a file in chunks to handle large files efficiently.
+    Resets the file pointer to the beginning after reading.
+    """
     sha256_hash = hashlib.sha256()
+    # Read the file in 4KB chunks
     for chunk in iter(lambda: file.file.read(4096), b""):
         sha256_hash.update(chunk)
+    # Reset file pointer to the start for subsequent operations
     file.file.seek(0)
     return sha256_hash.hexdigest()
 
-def handle_uploaded_image(file: UploadFile, db: Session) -> ImageModel | ImageResponse:
+def save_uploaded_file(file: UploadFile) -> tuple[Path, str]:
     """
-    Hashes the file to check for duplicates.
-    - If new, saves the file and creates a DB record.
-    - If a duplicate, returns the existing image's data.
+    Saves an uploaded file to the designated image directory with a unique name.
+
+    Args:
+        file: The uploaded file object from FastAPI.
+
+    Returns:
+        A tuple containing the full path to the saved image and its unique filename.
     """
-    try:
-        image_hash = _calculate_file_hash(file)
-        existing_image = db.query(ImageModel).filter(ImageModel.image_hash == image_hash).first()
-        if existing_image:
-            logger.info(
-                f"Duplicate found for '{file.filename}'. "
-                f"Matches existing image_id: {existing_image.id} ({existing_image.filename})"
-            )
-            return ImageResponse(
-                id=existing_image.id,
-                filename=existing_image.filename,
-                original_filename=file.filename,
-                file_path=existing_image.file_path,
-                has_thumbnail=existing_image.has_thumbnail,
-                is_duplicate=True,
-                message=f"Duplicate of existing image ID: {existing_image.id}"
-            )
+    file_extension = Path(file.filename).suffix
+    unique_filename = f"{uuid.uuid4()}{file_extension}"
+    image_path = IMAGE_DIR / unique_filename
 
-        file_extension = Path(file.filename).suffix
-        unique_filename = f"{uuid.uuid4()}{file_extension}"
-        image_path = IMAGE_DIR / unique_filename
-
-        with open(image_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-
-        new_image = ImageModel(
-            filename=unique_filename,
-            original_filename=file.filename,
-            file_path=str(image_path),
-            file_size=image_path.stat().st_size,
-            mime_type=file.content_type,
-            image_hash=image_hash
-        )
-        db.add(new_image)
-        db.commit()
-        db.refresh(new_image)
-        logger.info(f"Successfully saved new file: {file.filename} as {unique_filename}")
-
-        return new_image
-
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Failed to process uploaded file {file.filename}: {e}")
-        raise
+    with open(image_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    logger.info(f"Saved file '{file.filename}' as '{unique_filename}'")
+    return image_path, unique_filename
 
 def create_thumbnail(image_record: ImageModel):
     """
     Creates a thumbnail for an image, applying orientation-specific dimensions.
+    It reads the EXIF data to correctly orient the image before thumbnailing.
     """
     if image_record.has_thumbnail:
-        print(f"Thumbnail already exists for {image_record.filename}")
+        logger.debug(f"Thumbnail already exists for {image_record.filename}")
         return
 
     image_path = Path(image_record.file_path)
@@ -92,9 +68,10 @@ def create_thumbnail(image_record: ImageModel):
 
     try:
         with Image.open(image_path) as img:
-            # auto-correct orientation using EXIF data
+            # Auto-correct orientation using EXIF data before resizing
             img = ImageOps.exif_transpose(img)
 
+            # Determine target size based on aspect ratio
             if img.width > img.height:
                 target_size = (THUMB_SIZES["landscape"]["height"], THUMB_SIZES["landscape"]["width"])
             else:
@@ -102,19 +79,23 @@ def create_thumbnail(image_record: ImageModel):
 
             thumb = img.resize(target_size, Image.Resampling.LANCZOS)
 
+            # Ensure the image is in RGB format before saving as JPEG
             if thumb.mode in ('RGBA', 'LA', 'P'):
                 thumb = thumb.convert('RGB')
 
             thumb.save(thumb_path, "JPEG", quality=85)
 
-        image_record.has_thumbnail = True
-        print(f"Created thumbnail for {image_record.filename}")
+            # This flag will be committed by the calling service
+            image_record.has_thumbnail = True
+            logger.info(f"Created thumbnail for {image_record.filename}")
 
     except Exception as e:
-        print(f"Failed to create thumbnail for {image_path}: {e}")
+        logger.error(f"Failed to create thumbnail for {image_path}: {e}")
 
 def delete_image_files(image_record: ImageModel) -> bool:
-    """Deletes the physical image and thumbnail files from the disk."""
+    """
+    Deletes the physical image and its corresponding thumbnail file from the disk.
+    """
     try:
         image_path = Path(image_record.file_path)
         thumb_path = THUMB_DIR / image_record.filename
