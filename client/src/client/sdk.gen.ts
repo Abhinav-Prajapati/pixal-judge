@@ -20,9 +20,8 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 
 /**
  * Upload Images
- * Uploads one or more image files.
- * - Saves new images and triggers background processing.
- * - Detects duplicates based on file hash and returns existing image data.
+ * Uploads one or more image files. For each new image, it queues background
+ * tasks for metadata extraction, thumbnail generation, and feature embedding.
  */
 export const uploadImages = <ThrowOnError extends boolean = false>(options: Options<UploadImagesData, ThrowOnError>) => {
     return (options.client ?? _heyApiClient).post<UploadImagesResponses, UploadImagesErrors, ThrowOnError>({
@@ -38,7 +37,6 @@ export const uploadImages = <ThrowOnError extends boolean = false>(options: Opti
 
 /**
  * Get All Images
- * Retrieves a list of all images in the database.
  */
 export const getAllImages = <ThrowOnError extends boolean = false>(options?: Options<GetAllImagesData, ThrowOnError>) => {
     return (options?.client ?? _heyApiClient).get<GetAllImagesResponses, unknown, ThrowOnError>({
@@ -49,7 +47,6 @@ export const getAllImages = <ThrowOnError extends boolean = false>(options?: Opt
 
 /**
  * Delete Image
- * Deletes an image's database record and its physical files.
  */
 export const deleteImage = <ThrowOnError extends boolean = false>(options: Options<DeleteImageData, ThrowOnError>) => {
     return (options.client ?? _heyApiClient).delete<DeleteImageResponses, DeleteImageErrors, ThrowOnError>({
@@ -60,7 +57,6 @@ export const deleteImage = <ThrowOnError extends boolean = false>(options: Optio
 
 /**
  * Get Image File
- * Returns the original image file.
  */
 export const getImageFile = <ThrowOnError extends boolean = false>(options: Options<GetImageFileData, ThrowOnError>) => {
     return (options.client ?? _heyApiClient).get<GetImageFileResponses, GetImageFileErrors, ThrowOnError>({
@@ -71,7 +67,6 @@ export const getImageFile = <ThrowOnError extends boolean = false>(options: Opti
 
 /**
  * Get Thumbnail File
- * Returns the thumbnail file for an image.
  */
 export const getImageThumbnail = <ThrowOnError extends boolean = false>(options: Options<GetImageThumbnailData, ThrowOnError>) => {
     return (options.client ?? _heyApiClient).get<GetImageThumbnailResponses, GetImageThumbnailErrors, ThrowOnError>({
@@ -82,7 +77,6 @@ export const getImageThumbnail = <ThrowOnError extends boolean = false>(options:
 
 /**
  * Get All Batches
- * Retrieves a list of all grouping batches with full image details.
  */
 export const getAllBatches = <ThrowOnError extends boolean = false>(options?: Options<GetAllBatchesData, ThrowOnError>) => {
     return (options?.client ?? _heyApiClient).get<GetAllBatchesResponses, unknown, ThrowOnError>({
@@ -93,7 +87,6 @@ export const getAllBatches = <ThrowOnError extends boolean = false>(options?: Op
 
 /**
  * Create Batch
- * Creates a new, unprocessed batch by associating it with existing images.
  */
 export const createBatch = <ThrowOnError extends boolean = false>(options: Options<CreateBatchData, ThrowOnError>) => {
     return (options.client ?? _heyApiClient).post<CreateBatchResponses, CreateBatchErrors, ThrowOnError>({
@@ -108,7 +101,6 @@ export const createBatch = <ThrowOnError extends boolean = false>(options: Optio
 
 /**
  * Delete Batch
- * Deletes an existing batch and its associations.
  */
 export const deleteBatch = <ThrowOnError extends boolean = false>(options: Options<DeleteBatchData, ThrowOnError>) => {
     return (options.client ?? _heyApiClient).delete<DeleteBatchResponses, DeleteBatchErrors, ThrowOnError>({
@@ -119,7 +111,6 @@ export const deleteBatch = <ThrowOnError extends boolean = false>(options: Optio
 
 /**
  * Get Batch Details
- * Gets all information about a specific batch by its ID.
  */
 export const getBatch = <ThrowOnError extends boolean = false>(options: Options<GetBatchData, ThrowOnError>) => {
     return (options.client ?? _heyApiClient).get<GetBatchResponses, GetBatchErrors, ThrowOnError>({
@@ -130,7 +121,6 @@ export const getBatch = <ThrowOnError extends boolean = false>(options: Options<
 
 /**
  * Rename Batch
- * Renames an existing batch.
  */
 export const renameBatch = <ThrowOnError extends boolean = false>(options: Options<RenameBatchData, ThrowOnError>) => {
     return (options.client ?? _heyApiClient).put<RenameBatchResponses, RenameBatchErrors, ThrowOnError>({
@@ -145,7 +135,6 @@ export const renameBatch = <ThrowOnError extends boolean = false>(options: Optio
 
 /**
  * Remove Images From Batch
- * Removes one or more images from an existing batch.
  */
 export const removeImagesFromBatch = <ThrowOnError extends boolean = false>(options: Options<RemoveImagesFromBatchData, ThrowOnError>) => {
     return (options.client ?? _heyApiClient).delete<RemoveImagesFromBatchResponses, RemoveImagesFromBatchErrors, ThrowOnError>({
@@ -160,7 +149,6 @@ export const removeImagesFromBatch = <ThrowOnError extends boolean = false>(opti
 
 /**
  * Add Images To Batch
- * Adds one or more images to an existing batch.
  */
 export const addImagesToBatch = <ThrowOnError extends boolean = false>(options: Options<AddImagesToBatchData, ThrowOnError>) => {
     return (options.client ?? _heyApiClient).post<AddImagesToBatchResponses, AddImagesToBatchErrors, ThrowOnError>({
@@ -175,7 +163,7 @@ export const addImagesToBatch = <ThrowOnError extends boolean = false>(options: 
 
 /**
  * Upload And Add To Batch
- * Uploads one or more images and adds them to a specific batch.
+ * Uploads new images, adds them to the batch, and queues background tasks for processing.
  */
 export const uploadAndAddImagesToBatch = <ThrowOnError extends boolean = false>(options: Options<UploadAndAddImagesToBatchData, ThrowOnError>) => {
     return (options.client ?? _heyApiClient).post<UploadAndAddImagesToBatchResponses, UploadAndAddImagesToBatchErrors, ThrowOnError>({
@@ -191,7 +179,6 @@ export const uploadAndAddImagesToBatch = <ThrowOnError extends boolean = false>(
 
 /**
  * Analyze Batch
- * Runs the grouping analysis on a batch and stores the results.
  */
 export const analyzeBatch = <ThrowOnError extends boolean = false>(options: Options<AnalyzeBatchData, ThrowOnError>) => {
     return (options.client ?? _heyApiClient).put<AnalyzeBatchResponses, AnalyzeBatchErrors, ThrowOnError>({
@@ -206,7 +193,6 @@ export const analyzeBatch = <ThrowOnError extends boolean = false>(options: Opti
 
 /**
  * Update Groups
- * Manually updates the group assignments for images in a batch.
  */
 export const updateGroupsInBatch = <ThrowOnError extends boolean = false>(options: Options<UpdateGroupsInBatchData, ThrowOnError>) => {
     return (options.client ?? _heyApiClient).put<UpdateGroupsInBatchResponses, UpdateGroupsInBatchErrors, ThrowOnError>({
