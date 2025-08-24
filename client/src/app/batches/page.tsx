@@ -68,8 +68,8 @@ function CreateBatchModal({ modalId, onBatchCreated }: { modalId: string; onBatc
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!batchName.trim() || selectedImageIds.size === 0) {
-      setError("Please provide a batch name and select at least one image.");
+    if (!batchName.trim()) {
+      setError("Please provide a batch name.");
       return;
     }
     setError(null);
