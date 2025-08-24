@@ -24,3 +24,11 @@ def create(db: Session, image_data: dict) -> Image:
 def remove(db: Session, image: Image):
     db.delete(image)
     db.commit()
+
+def get_without_thumbnails(db: Session) -> List[Image]:
+    """Retrieves all images that are missing a thumbnail."""
+    return db.query(Image).filter(Image.has_thumbnail == False).all()
+
+def get_without_embeddings(db: Session) -> List[Image]:
+    """Retrieves all images that are missing feature embeddings."""
+    return db.query(Image).filter(Image.features == None).all()
