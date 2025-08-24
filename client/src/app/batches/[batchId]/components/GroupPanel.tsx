@@ -1,5 +1,8 @@
 'use client'
-import { useBatchStore } from "../store/useBatchStore";
+import { useMemo } from 'react';
+import { useParams } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { getBatchOptions } from '@/client/@tanstack/react-query.gen';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 
@@ -17,15 +20,37 @@ function ClusterImage({ imageId }: { imageId: number; }) {
 }
 
 export function GroupPanel() {
-  const { loading, error, getClusterEntries } = useBatchStore();
-  const clusterEntries = getClusterEntries();
+  const params = useParams();
+  const batchId = Number(params.batchId);
+
+  const { data: batch, isLoading, error } = useQuery({
+    ...getBatchOptions({ path: { batch_id: batchId } }),
+    enabled: !isNaN(batchId), // Only run query if batchId is a valid number
+  });
+
+  const clusterEntries = useMemo(() => {
+    if (!batch?.image_associations) return [];
+
+    const clusters = batch.image_associations.reduce((acc, assoc) => {
+      const { image, group_label } = assoc;
+      if (group_label !== null) {
+        if (!acc[group_label]) {
+          acc[group_label] = [];
+        }
+        acc[group_label].push(image.id);
+      }
+      return acc;
+    }, {} as Record<string, number[]>);
+
+    return Object.entries(clusters);
+  }, [batch]);
 
   const renderContent = () => {
-    if (loading) {
+    if (isLoading) {
       return <div className="flex items-center justify-center h-full"><span className="loading loading-spinner loading-lg"></span></div>;
     }
     if (error) {
-      return <div className="flex items-center justify-center h-full text-error">Error: {error}</div>;
+      return <div className="flex items-center justify-center h-full text-error">Error: {error.message}</div>;
     }
     if (clusterEntries.length === 0) {
       return <div className="flex items-center justify-center h-full text-base-content/60"><p>No clusters to display.</p></div>;
@@ -49,9 +74,6 @@ export function GroupPanel() {
   };
 
   return (
-    // --- FIX APPLIED HERE ---
-    // Added `flex flex-col` to the card. This makes the card a flex container,
-    // which allows the `card-body` to correctly fill the available height and then scroll.
     <div className="card bg-base-300 text-white w-full h-full m-3 shadow-lg flex flex-col">
       <div className="card-body overflow-y-auto">
         {renderContent()}
