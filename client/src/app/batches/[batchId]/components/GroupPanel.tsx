@@ -72,36 +72,39 @@ export function GroupPanel() {
 
     return (
       <div className="flex flex-col h-full w-full">
-        {/* Tab Navigation */}
-        <div className="z-10 flex items-end">
-          <a
-            className={`tab-item px-4 py-2 rounded-t-lg font-medium transition-colors ${activeTab === 'grouped'
-              ? 'bg-base-200 text-base-content'
-              : 'bg-base-300 text-base-content/60 hover:bg-base-200/50'
-              }`}
-            onClick={() => setActiveTab('grouped')}
-          >
-            Grouped View
-          </a>
-          <a
-            className={`tab-item px-4 py-2 rounded-t-lg font-medium transition-colors ${activeTab === 'all'
-              ? 'bg-base-200 text-base-content'
-              : 'bg-base-300 text-base-content/60 hover:bg-base-200/50'
-              }`}
-            onClick={() => setActiveTab('all')}
-          >
-            All Images ({allImages.length})
-          </a>
+        {/* Combined Tabs and Selection Bar - now sticky */}
+        <div className="sticky top-0 z-10 flex items-end justify-between">
+          <div className="flex">
+            <a
+              className={`tab-item px-4 py-2 rounded-t-lg font-medium transition-colors ${activeTab === 'grouped'
+                ? 'bg-base-200 text-base-content'
+                : 'bg-base-300 text-base-content/60 hover:bg-base-200/50'
+                }`}
+              onClick={() => setActiveTab('grouped')}
+            >
+              Grouped View
+            </a>
+            <a
+              className={`tab-item px-4 py-2 rounded-t-lg font-medium transition-colors ${activeTab === 'all'
+                ? 'bg-base-200 text-base-content'
+                : 'bg-base-300 text-base-content/60 hover:bg-base-200/50'
+                }`}
+              onClick={() => setActiveTab('all')}
+            >
+              All Images ({allImages.length})
+            </a>
+          </div>
+
+          {isSelectionActive && (
+            <div className="flex items-center rounded-t-lg bg-base-200 px-3 py-1 shadow">
+              <p className="font-semibold text-sm mr-4">{selectedImages.length} image(s) selected</p>
+              <button className="btn btn-sm btn-dash btn-primary" onClick={clearSelection}>Clear Selection</button>
+            </div>
+          )}
         </div>
 
         {/* Tab Content Container */}
         <div className="flex-grow p-4 bg-base-200 rounded-b-lg shadow-inner overflow-y-auto">
-          {isSelectionActive && (
-            <div className="flex items-center justify-between p-3 mb-4 rounded-lg bg-base-100 shadow">
-              <p className="font-semibold">{selectedImages.length} image(s) selected</p>
-              <button className="btn btn-sm btn-ghost" onClick={clearSelection}>Clear Selection</button>
-            </div>
-          )}
           {content}
         </div>
       </div>
