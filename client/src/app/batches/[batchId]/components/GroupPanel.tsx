@@ -109,7 +109,7 @@ export function GroupPanel() {
   };
 
   return (
-    <div className=" ">
+    <div className="h-full w-full flex flex-col">
       {renderContent()}
     </div>
   );
