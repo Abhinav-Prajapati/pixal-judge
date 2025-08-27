@@ -2,8 +2,8 @@
 'use client'
 import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { getBatchOptions } from '@/client/@tanstack/react-query.gen';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getBatchOptions, removeImagesFromBatchMutation } from '@/client/@tanstack/react-query.gen';
 import type { ImageResponse } from '@/client/types.gen';
 import { ImageGrid } from './SelectableImageGrid';
 import { useImageSelectionStore } from '../store/useImageSelectionStore';
@@ -11,9 +11,11 @@ import { useImageSelectionStore } from '../store/useImageSelectionStore';
 export function GroupPanel() {
   const params = useParams();
   const batchId = Number(params.batchId);
+  const queryClient = useQueryClient();
 
   // --- Component State ---
   const [activeTab, setActiveTab] = useState<'grouped' | 'all'>('grouped');
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
 
   // --- Zustand State Hook ---
   const {
@@ -27,6 +29,33 @@ export function GroupPanel() {
     ...getBatchOptions({ path: { batch_id: batchId } }),
     enabled: !isNaN(batchId),
   });
+
+  // --- Mutations ---
+  const removeImagesMutation = useMutation({
+    ...removeImagesFromBatchMutation(),
+    onSuccess: () => {
+      clearSelection();
+      setShowRemoveModal(false);
+      // Invalidate the query to refetch the batch data with the removed images
+      queryClient.invalidateQueries(getBatchOptions({ path: { batch_id: batchId } }));
+    },
+    onError: (err) => {
+      console.error("Failed to remove images from batch:", err);
+      // Optionally show an error message to the user
+      setShowRemoveModal(false);
+    }
+  });
+
+  const handleRemoveImages = () => {
+    if (selectedImages.length > 0) {
+      removeImagesMutation.mutate({
+        path: { batch_id: batchId },
+        body: {
+          image_ids: selectedImages.map(img => img.id)
+        }
+      });
+    }
+  };
 
   // --- Memoized Data Transformation ---
   const clusterEntries = useMemo(() => {
@@ -96,9 +125,18 @@ export function GroupPanel() {
           </div>
 
           {isSelectionActive && (
-            <div className="flex items-center rounded-t-lg bg-base-200 px-3 py-1 shadow">
+            <div className="flex items-center rounded-t-lg bg-base-200 px-3 py-2">
               <p className="font-semibold text-sm mr-4">{selectedImages.length} image(s) selected</p>
-              <button className="btn btn-sm btn-dash btn-primary" onClick={clearSelection}>Clear Selection</button>
+              <div className="flex gap-2">
+                <button
+                  className="btn btn-sm btn-dash btn-error"
+                  onClick={() => setShowRemoveModal(true)}
+                  disabled={removeImagesMutation.isPending}
+                >
+                  {removeImagesMutation.isPending ? 'Removing...' : 'Remove'}
+                </button>
+                <button className="btn btn-sm btn-dash btn-primary" onClick={clearSelection}>Clear Selection</button>
+              </div>
             </div>
           )}
         </div>
@@ -114,6 +152,22 @@ export function GroupPanel() {
   return (
     <div className="h-full w-full flex flex-col">
       {renderContent()}
+      {showRemoveModal && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg">Confirm Removal</h3>
+            <p className="py-4">
+              Are you sure you want to remove the selected {selectedImages.length} image(s) from this batch?
+              <br />
+              <strong className="text-warning">This will not permanently delete the images from your album.</strong>
+            </p>
+            <div className="modal-action">
+              <button className="btn btn-ghost" onClick={() => setShowRemoveModal(false)}>Cancel</button>
+              <button className="btn btn-error" onClick={handleRemoveImages}>Remove</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
