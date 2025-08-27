@@ -52,51 +52,65 @@ export function GroupPanel() {
     if (error) return <div className="flex items-center justify-center h-full text-error">Error: {error.message}</div>;
     if (!batch || batch.image_associations.length === 0) return <div className="flex items-center justify-center h-full text-base-content/60"><p>No images in this batch.</p></div>;
 
+    const content = activeTab === 'grouped' ? (
+      <div className="flex flex-col items-start gap-6">
+        {clusterEntries.map(([clusterId, images]) => (
+          <section key={clusterId} className="w-full rounded-lg bg-white/5 p-4">
+            <h2 className="mb-3 text-lg font-bold">
+              Cluster {clusterId}
+              <span className="badge badge-outline badge-info ml-2">{images.length}</span>
+            </h2>
+            <ImageGrid images={images} />
+          </section>
+        ))}
+      </div>
+    ) : (
+      <section className="rounded-lg bg-white/5 p-4">
+        <ImageGrid images={allImages} />
+      </section>
+    );
+
     return (
-      <>
+      <div className="flex flex-col h-full w-full">
         {/* Tab Navigation */}
-        <div role="tablist" className="tabs tabs-bordered mb-4">
-          <a role="tab" className={`tab ${activeTab === 'grouped' ? 'tab-active' : ''}`} onClick={() => setActiveTab('grouped')}>Grouped View</a>
-          <a role="tab" className={`tab ${activeTab === 'all' ? 'tab-active' : ''}`} onClick={() => setActiveTab('all')}>All Images ({allImages.length})</a>
+        <div className="z-10 flex items-end">
+          <a
+            className={`tab-item px-4 py-2 rounded-t-lg font-medium transition-colors ${activeTab === 'grouped'
+              ? 'bg-base-200 text-base-content'
+              : 'bg-base-300 text-base-content/60 hover:bg-base-200/50'
+              }`}
+            onClick={() => setActiveTab('grouped')}
+          >
+            Grouped View
+          </a>
+          <a
+            className={`tab-item px-4 py-2 rounded-t-lg font-medium transition-colors ${activeTab === 'all'
+              ? 'bg-base-200 text-base-content'
+              : 'bg-base-300 text-base-content/60 hover:bg-base-200/50'
+              }`}
+            onClick={() => setActiveTab('all')}
+          >
+            All Images ({allImages.length})
+          </a>
         </div>
 
-        {/* Selection Info Bar - controlled by Zustand state */}
-        {isSelectionActive && (
-          <div className="flex items-center justify-between p-3 mb-4 rounded-lg bg-base-100 shadow">
-            <p className="font-semibold">{selectedImages.length} image(s) selected</p>
-            <button className="btn btn-sm btn-ghost" onClick={clearSelection}>Clear Selection</button>
-          </div>
-        )}
-
-        {/* Tab Content */}
-        {activeTab === 'grouped' && (
-          <div className="flex flex-col items-start gap-6">
-            {clusterEntries.map(([clusterId, images]) => (
-              <section key={clusterId} className="w-full rounded-lg bg-white/5 p-4">
-                <h2 className="mb-3 text-lg font-bold">
-                  Cluster {clusterId}
-                  <span className="badge badge-outline badge-info ml-2">{images.length}</span>
-                </h2>
-                <ImageGrid images={images} />
-              </section>
-            ))}
-          </div>
-        )}
-
-        {activeTab === 'all' && (
-          <section className="rounded-lg bg-white/5 p-4">
-            <ImageGrid images={allImages} />
-          </section>
-        )}
-      </>
+        {/* Tab Content Container */}
+        <div className="flex-grow p-4 bg-base-200 rounded-b-lg shadow-inner overflow-y-auto">
+          {isSelectionActive && (
+            <div className="flex items-center justify-between p-3 mb-4 rounded-lg bg-base-100 shadow">
+              <p className="font-semibold">{selectedImages.length} image(s) selected</p>
+              <button className="btn btn-sm btn-ghost" onClick={clearSelection}>Clear Selection</button>
+            </div>
+          )}
+          {content}
+        </div>
+      </div>
     );
   };
 
   return (
-    <div className="card bg-base-300 text-white w-full h-full m-3 shadow-lg flex flex-col">
-      <div className="card-body overflow-y-auto">
-        {renderContent()}
-      </div>
+    <div className=" ">
+      {renderContent()}
     </div>
   );
 }
