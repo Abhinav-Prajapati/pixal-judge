@@ -1,21 +1,24 @@
+// src/store/usePanelStore.ts
 import { create } from "zustand";
-import { Image, LucideIcon, Settings } from "lucide-react";
-export type Tab = "media" | "settings"; 
+import { Image as ImageIcon, LucideIcon, Settings } from "lucide-react";
+
+export type Tab = "media" | "settings";
 
 export const tabs: Record<Tab, { icon: LucideIcon; label: string }> = {
   media: {
-    icon: Image,
+    icon: ImageIcon,
     label: "Media",
   },
   settings: {
     icon: Settings,
     label: "Settings",
-  },}
+  },
+};
 
 interface PanelStore {
   activeTab: Tab;
   setActiveTab: (tab: Tab) => void;
-  mediaItems: any[];
+  mediaItems: any[]; // Consider typing this more specifically
   addMediaItem: (item: any) => void;
 }
 

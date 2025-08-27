@@ -1,6 +1,6 @@
 'use client'
 import { useParams } from 'next/navigation';
-import { usePanelStore } from "../store/useUiStore";
+import { usePanelStore } from "../store/usePanelStore";
 import { TabBar } from "./TabBar";
 import { MediaView } from "./MediaView";
 import { SettingsView } from "./SettingsView";
