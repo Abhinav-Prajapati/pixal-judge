@@ -1,4 +1,4 @@
-import { usePanelStore, tabs, Tab } from "../store/useUiStore";
+import { usePanelStore, tabs, Tab } from "../store/usePanelStore";
 
 export function TabBar() {
   const { activeTab, setActiveTab } = usePanelStore();

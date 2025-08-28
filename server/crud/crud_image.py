@@ -31,4 +31,4 @@ def get_without_thumbnails(db: Session) -> List[Image]:
 
 def get_without_embeddings(db: Session) -> List[Image]:
     """Retrieves all images that are missing feature embeddings."""
-    return db.query(Image).filter(Image.features == None).all()
+    return db.query(Image).filter(Image._features.is_(None)).all()

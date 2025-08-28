@@ -1,83 +1,173 @@
+// src/components/GroupPanel.tsx
 'use client'
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { getBatchOptions } from '@/client/@tanstack/react-query.gen';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
-
-function ClusterImage({ imageId }: { imageId: number; }) {
-  return (
-    <div className="w-28 h-40 relative overflow-hidden shadow-md bg-base-300 rounded-md">
-      <img
-        src={`${API_BASE_URL}/images/thumbnail/${imageId}`}
-        alt={`Image ${imageId}`}
-        className="h-full w-full object-cover"
-        loading="lazy"
-      />
-    </div>
-  );
-}
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getBatchOptions, removeImagesFromBatchMutation } from '@/client/@tanstack/react-query.gen';
+import type { ImageResponse } from '@/client/types.gen';
+import { ImageGrid } from './SelectableImageGrid';
+import { useImageSelectionStore } from '../store/useImageSelectionStore';
 
 export function GroupPanel() {
   const params = useParams();
   const batchId = Number(params.batchId);
+  const queryClient = useQueryClient();
 
+  // --- Component State ---
+  const [activeTab, setActiveTab] = useState<'grouped' | 'all'>('grouped');
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+
+  // --- Zustand State Hook ---
+  const {
+    selectedImages,
+    isSelectionActive,
+    clearSelection
+  } = useImageSelectionStore();
+
+  // --- Data Fetching ---
   const { data: batch, isLoading, error } = useQuery({
     ...getBatchOptions({ path: { batch_id: batchId } }),
-    enabled: !isNaN(batchId), // Only run query if batchId is a valid number
+    enabled: !isNaN(batchId),
   });
 
+  // --- Mutations ---
+  const removeImagesMutation = useMutation({
+    ...removeImagesFromBatchMutation(),
+    onSuccess: () => {
+      clearSelection();
+      setShowRemoveModal(false);
+      // Invalidate the query to refetch the batch data with the removed images
+      queryClient.invalidateQueries(getBatchOptions({ path: { batch_id: batchId } }));
+    },
+    onError: (err) => {
+      console.error("Failed to remove images from batch:", err);
+      // Optionally show an error message to the user
+      setShowRemoveModal(false);
+    }
+  });
+
+  const handleRemoveImages = () => {
+    if (selectedImages.length > 0) {
+      removeImagesMutation.mutate({
+        path: { batch_id: batchId },
+        body: {
+          image_ids: selectedImages.map(img => img.id)
+        }
+      });
+    }
+  };
+
+  // --- Memoized Data Transformation ---
   const clusterEntries = useMemo(() => {
     if (!batch?.image_associations) return [];
-
     const clusters = batch.image_associations.reduce((acc, assoc) => {
       const { image, group_label } = assoc;
-      if (group_label !== null) {
-        if (!acc[group_label]) {
-          acc[group_label] = [];
-        }
-        acc[group_label].push(image.id);
-      }
+      const key = group_label ?? 'Ungrouped';
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(image);
       return acc;
-    }, {} as Record<string, number[]>);
-
+    }, {} as Record<string, ImageResponse[]>);
     return Object.entries(clusters);
   }, [batch]);
 
-  const renderContent = () => {
-    if (isLoading) {
-      return <div className="flex items-center justify-center h-full"><span className="loading loading-spinner loading-lg"></span></div>;
-    }
-    if (error) {
-      return <div className="flex items-center justify-center h-full text-error">Error: {error.message}</div>;
-    }
-    if (clusterEntries.length === 0) {
-      return <div className="flex items-center justify-center h-full text-base-content/60"><p>No clusters to display.</p></div>;
-    }
+  const allImages = useMemo(() => {
+    if (!batch?.image_associations) return [];
+    return batch.image_associations.map(assoc => assoc.image);
+  }, [batch]);
 
-    return (
-      <div className="flex flex-row flex-wrap items-start gap-4">
-        {clusterEntries.map(([clusterId, imageIds]) => (
-          <section key={clusterId} className="rounded-lg bg-white/5 p-3">
-            <h2 className="mb-3">
+  // --- Render Logic ---
+  const renderContent = () => {
+    if (isLoading) return <div className="flex items-center justify-center h-full"><span className="loading loading-spinner loading-lg"></span></div>;
+    if (error) return <div className="flex items-center justify-center h-full text-error">Error: {error.message}</div>;
+    if (!batch || batch.image_associations.length === 0) return <div className="flex items-center justify-center h-full text-base-content/60"><p>No images in this batch.</p></div>;
+
+    const content = activeTab === 'grouped' ? (
+      <div className="flex flex-col items-start gap-6">
+        {clusterEntries.map(([clusterId, images]) => (
+          <section key={clusterId} className="w-full rounded-lg bg-white/5 p-4">
+            <h2 className="mb-3 text-lg font-bold">
               Cluster {clusterId}
-              <span className="badge badge-outline badge-info ml-2 rounded-full text-sm">{imageIds.length} images</span>
+              <span className="badge badge-outline badge-info ml-2">{images.length}</span>
             </h2>
-            <div className="flex flex-wrap gap-2">
-              {imageIds.map(id => <ClusterImage key={id} imageId={id} />)}
-            </div>
+            <ImageGrid images={images} />
           </section>
         ))}
+      </div>
+    ) : (
+      <section className="rounded-lg bg-white/5 p-4">
+        <ImageGrid images={allImages} />
+      </section>
+    );
+
+    return (
+      <div className="flex flex-col h-full w-full">
+        {/* Combined Tabs and Selection Bar - now sticky */}
+        <div className="sticky top-0 z-10 flex items-end justify-between">
+          <div className="flex">
+            <a
+              className={`tab-item px-4 py-2 rounded-t-lg font-medium transition-colors ${activeTab === 'grouped'
+                ? 'bg-base-200 text-base-content'
+                : 'bg-base-300 text-base-content/60 hover:bg-base-200/50'
+                }`}
+              onClick={() => setActiveTab('grouped')}
+            >
+              Grouped View
+            </a>
+            <a
+              className={`tab-item px-4 py-2 rounded-t-lg font-medium transition-colors ${activeTab === 'all'
+                ? 'bg-base-200 text-base-content'
+                : 'bg-base-300 text-base-content/60 hover:bg-base-200/50'
+                }`}
+              onClick={() => setActiveTab('all')}
+            >
+              All Images ({allImages.length})
+            </a>
+          </div>
+
+          {isSelectionActive && (
+            <div className="flex items-center rounded-t-lg bg-base-200 px-3 py-2">
+              <p className="font-semibold text-sm mr-4">{selectedImages.length} image(s) selected</p>
+              <div className="flex gap-2">
+                <button
+                  className="btn btn-sm btn-dash btn-error"
+                  onClick={() => setShowRemoveModal(true)}
+                  disabled={removeImagesMutation.isPending}
+                >
+                  {removeImagesMutation.isPending ? 'Removing...' : 'Remove'}
+                </button>
+                <button className="btn btn-sm btn-dash btn-primary" onClick={clearSelection}>Clear Selection</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Tab Content Container */}
+        <div className="flex-grow p-4 bg-base-200 rounded-b-lg shadow-inner overflow-y-auto">
+          {content}
+        </div>
       </div>
     );
   };
 
   return (
-    <div className="card bg-base-300 text-white w-full h-full m-3 shadow-lg flex flex-col">
-      <div className="card-body overflow-y-auto">
-        {renderContent()}
-      </div>
+    <div className="h-full w-full flex flex-col">
+      {renderContent()}
+      {showRemoveModal && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg">Confirm Removal</h3>
+            <p className="py-4">
+              Are you sure you want to remove the selected {selectedImages.length} image(s) from this batch?
+              <br />
+              <strong className="text-warning">This will not permanently delete the images from your album.</strong>
+            </p>
+            <div className="modal-action">
+              <button className="btn btn-ghost" onClick={() => setShowRemoveModal(false)}>Cancel</button>
+              <button className="btn btn-error" onClick={handleRemoveImages}>Remove</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
