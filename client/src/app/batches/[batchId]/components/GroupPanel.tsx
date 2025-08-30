@@ -90,7 +90,7 @@ export function GroupPanel() {
         {clusterEntries.map(([clusterId, images]) => (
           <section key={clusterId} className="rounded-lg bg-white/5 p-4">
             <h2 className="mb-3 text-lg font-bold">
-              Cluster {clusterId}
+              {clusterId}
               <span className="badge badge-outline badge-info ml-2">{images.length}</span>
             </h2>
             <ImageGrid images={images} />

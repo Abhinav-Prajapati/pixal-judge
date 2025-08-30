@@ -93,10 +93,15 @@ def analyze_batch(db: Session, batch_id: int, params: BatchAnalyze) -> ImageBatc
     grouper = ImageGrouper(eps=params.eps, min_samples=params.min_samples, metric=params.metric)
     labels = grouper.fit_predict(features_matrix)
     
+    # Create a mapping from numeric labels to descriptive names
+    unique_cluster_labels = sorted([label for label in np.unique(labels) if label != -1])
+    label_map = {label: f"Group {i+1}" for i, label in enumerate(unique_cluster_labels)}
+    label_map[-1] = "Ungrouped"  # Map noise points to "Ungrouped"
+
     association_map = crud_batch.get_associations_map(db, batch_id=batch.id)
     for image, label in zip(batch.images, labels):
         if image.id in association_map:
-            association_map[image.id].group_label = str(label)
+            association_map[image.id].group_label = label_map.get(label, "Ungrouped")
     
     batch.status = 'complete'
     return crud_batch.update(db, db_obj=batch)
