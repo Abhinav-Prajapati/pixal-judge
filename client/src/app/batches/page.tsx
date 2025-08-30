@@ -156,21 +156,91 @@ function BatchesPage() {
 
     if (Array.isArray(batches) && batches.length > 0) {
       return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {batches.map(batch => (
-            <Link key={batch.id} href={`/batches/${batch.id}`} className="card bg-base-100 shadow-md hover:shadow-xl transition-shadow duration-300">
-              <div className="card-body">
-                <h2 className="card-title text-primary">{batch.batch_name}</h2>
-                <p className="text-sm text-base-content text-opacity-60 -mt-2">ID: {batch.id}</p>
-                <div className="card-actions justify-between items-center mt-4">
-                  <div className="text-base-content">{batch.image_associations.length} images</div>
-                  <div className={`badge ${batch.status === 'complete' ? 'badge-success' : 'badge-warning'}`}>
-                    {batch.status}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {batches.map(batch => {
+            const previewImages = batch.image_associations.slice(0, 3);
+            const totalImages = batch.image_associations.length;
+            const totalGroups = new Set(
+              batch.image_associations
+                .map(assoc => assoc.group_label)
+                .filter(label => label !== null && label !== '-1')
+            ).size;
+
+            const remainingImagesCount = totalImages > 3 ? `+${totalImages - 3}` : '';
+
+            return (
+              <Link key={batch.id} href={`/batches/${batch.id}`} className="card bg-base-100 shadow-xl group transition-all duration-300 ease-in-out border border-base-300 hover:border-primary hover:shadow-2xl">
+                <div className="card-body p-6 relative overflow-hidden flex-row items-center">
+                  {/* Stacked Image Previews */}
+                  <div className="relative w-max h-40 flex-shrink-0">
+                    {previewImages.slice().reverse().map((assoc, index) => {
+                      const positionOffset = index * 8; // Reduced offset for tighter stacking
+
+                      return (
+                        <div
+                          key={assoc.image.id}
+                          className="absolute w-28 h-40 rounded-lg overflow-hidden bg-base-200"
+                          style={{
+                            bottom: '0px',
+                            left: '0px',
+                            transform: `translate(${positionOffset}px, -${positionOffset}px)`,
+                            zIndex: 3 - index,
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                            transition: 'transform 0.3s ease-in-out',
+                          }}
+                        >
+                          <img
+                            src={`${API_BASE_URL}/images/thumbnail/${assoc.image.id}`}
+                            alt="Batch image preview"
+                            className="w-full h-full object-cover rounded-lg"
+                          />
+                        </div>
+                      );
+                    })}
+                    {remainingImagesCount && (
+                      <div
+                        className="absolute w-28 h-40 rounded-lg flex items-center justify-center text-base-content text-lg bg-base-300 font-mono font-bold"
+                        style={{
+                          bottom: '0px',
+                          left: '0px',
+                          transform: `translate(${3 * 8}px, -${3 * 8}px)`,
+                          zIndex: 0,
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                        }}
+                      >
+                        {remainingImagesCount}
+                      </div>
+                    )}
+                    {previewImages.length === 0 && (
+                      <div className="absolute w-28 h-40 rounded-lg flex items-center justify-center text-base-content text-opacity-50 text-center bg-base-200 border border-base-content"
+                        style={{
+                          bottom: '0px',
+                          left: '0px',
+                          transform: 'translate(15px, -15px)',
+                          zIndex: 3
+                        }}>
+                        No Images
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Card Content */}
+                  <div className="flex flex-col justify-center ml-10 flex-grow font-mono">
+                    <div className="flex justify-between items-start mb-4">
+                      <h2 className="card-title text-xl font-bold text-primary truncate" title={batch.batch_name}>
+                        {batch.batch_name}
+                      </h2>
+                      <div className={`badge ${batch.status === 'complete' ? 'badge-success' : 'badge-warning'} font-mono`}>
+                        {batch.status}
+                      </div>
+                    </div>
+                    <p className="text-base-content/80 text-sm mb-2">Total Images: {totalImages}</p>
+                    <p className="text-base-content/80 text-sm">Total Groups: {totalGroups}</p>
                   </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       );
     }
