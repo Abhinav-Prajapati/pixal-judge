@@ -67,7 +67,11 @@ export function GroupPanel() {
       acc[key].push(image);
       return acc;
     }, {} as Record<string, ImageResponse[]>);
-    return Object.entries(clusters);
+
+    // Sort the entries by the number of images in descending order
+    const unsortedEntries = Object.entries(clusters);
+    unsortedEntries.sort(([, imagesA], [, imagesB]) => imagesB.length - imagesA.length);
+    return unsortedEntries;
   }, [batch]);
 
   const allImages = useMemo(() => {
@@ -82,9 +86,9 @@ export function GroupPanel() {
     if (!batch || batch.image_associations.length === 0) return <div className="flex items-center justify-center h-full text-base-content/60"><p>No images in this batch.</p></div>;
 
     const content = activeTab === 'grouped' ? (
-      <div className="flex flex-col items-start gap-6">
+      <div className="flex flex-row flex-wrap items-start gap-6">
         {clusterEntries.map(([clusterId, images]) => (
-          <section key={clusterId} className="w-full rounded-lg bg-white/5 p-4">
+          <section key={clusterId} className="rounded-lg bg-white/5 p-4">
             <h2 className="mb-3 text-lg font-bold">
               Cluster {clusterId}
               <span className="badge badge-outline badge-info ml-2">{images.length}</span>
