@@ -8,7 +8,7 @@ import {
   getAllImagesOptions,
   addImagesToBatchMutation
 } from "@/client/@tanstack/react-query.gen";
-import { Loader2, CloudUpload, Upload, Grid2X2, ArrowDown01, PlusCircle } from "lucide-react";
+import { Loader2, CloudUpload, Upload, PlusCircle, LayoutGrid, List } from "lucide-react";
 import { ImageGrid } from './SelectableImageGrid';
 import { useImageSelectionStore } from "../store/useImageSelectionStore";
 
@@ -22,13 +22,14 @@ export function MediaView({ batchId }: MediaViewProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
   // Component state for the add images modal
   const [showAddModal, setShowAddModal] = useState(false);
 
   // Zustand state for image selection in the modal
   const {
     selectedImages,
-    isSelectionActive,
     clearSelection
   } = useImageSelectionStore();
 
@@ -50,7 +51,7 @@ export function MediaView({ batchId }: MediaViewProps) {
   // Handle file uploads with useMutation for better state management
   const uploadMutation = useMutation({
     mutationFn: uploadAndAddImagesToBatchMutation().mutationFn,
-    onSuccess: (updatedBatch) => {
+    onSuccess: () => {
       // Invalidate the query to refetch data and show new images
       queryClient.invalidateQueries({
         queryKey: getBatchQueryKey({ path: { batch_id: batchId! } })
@@ -123,28 +124,52 @@ export function MediaView({ batchId }: MediaViewProps) {
       );
     }
 
-    // If a batch is loaded and has images, display them directly here
+    // --- MODIFIED ---
     if (batch?.image_associations && batch.image_associations.length > 0) {
-      return (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {batch.image_associations.map(({ image }) => (
-            <div key={image.id}>
-              <div className="aspect-square overflow-hidden rounded-md">
+      if (viewMode === 'grid') {
+        return (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {batch.image_associations.map(({ image }) => (
+              <div key={image.id}>
+                <div className="aspect-square overflow-hidden rounded-md">
+                  <img
+                    src={`${API_BASE_URL}/images/thumbnail/${image.id}`}
+                    alt={image.original_filename}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="text-primary-content/50 py-1 text-xs truncate">
+                  {image.original_filename}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      if (viewMode === 'list') {
+        return (
+          <div className="flex flex-col gap-2">
+            {batch.image_associations.map(({ image }) => (
+              <div key={image.id} className="flex items-center gap-4 p-2 rounded-md bg-base-300/50">
                 <img
                   src={`${API_BASE_URL}/images/thumbnail/${image.id}`}
                   alt={image.original_filename}
-                  className="w-full h-full object-cover"
+                  className="w-12 h-12 object-cover rounded-md"
                   loading="lazy"
                 />
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium truncate">{image.original_filename}</span>
+                  <span className="text-xs text-primary-content/50">ID: {image.id}</span>
+                </div>
               </div>
-              <div className="text-primary-content/50 py-1 text-xs truncate">
-                {image.original_filename}
-              </div>
-            </div>
-          ))}
-        </div>
-      );
+            ))}
+          </div>
+        );
+      }
     }
+    // --- END MODIFIED ---
 
     // Default empty/upload state
     return (
@@ -194,9 +219,21 @@ export function MediaView({ batchId }: MediaViewProps) {
             <PlusCircle className="h-4 w-4" /><span>Add Images</span>
           </button>
         </div>
-        <div className="flex items-center gap-1">
-          <button className="p-2 rounded-md hover:bg-white/10"><Grid2X2 className="h-4 w-4" /></button>
-          <button className="p-2 rounded-md hover:bg-white/10"><ArrowDown01 className="h-4 w-4" /></button>
+        <div className="flex items-center gap-1 p-1 rounded-md bg-base-100">
+          <button
+            onClick={() => setViewMode('grid')}
+            className={`p-2 rounded-md transition-colors ${viewMode === 'grid' ? 'text-primary' : 'hover:bg-white/10'}`}
+            title="Grid View"
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            className={`p-2 rounded-md transition-colors ${viewMode === 'list' ? 'text-primary' : 'hover:bg-white/10'}`}
+            title="List View"
+          >
+            <List className="h-4 w-4" />
+          </button>
         </div>
       </div>
       <div className="flex-1 p-3 overflow-y-auto">{renderContent()}</div>
