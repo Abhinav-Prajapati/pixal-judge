@@ -1,25 +1,17 @@
 'use client'
-import { useParams } from 'next/navigation';
-import { usePanelStore } from "../store/usePanelStore";
-import { TabBar } from "./TabBar";
-import { MediaView } from "./MediaView";
-import { SettingsView } from "./SettingsView";
+import type { BatchResponse } from '@/client/types.gen';
+import { MediaView } from './MediaView';
 
-export function MediaPanel() {
-  const { activeTab } = usePanelStore();
-  const params = useParams();
+interface MediaPanelProps {
+  batch: BatchResponse;
+}
 
-  // 1. Get batchId here in the parent component
-  const batchId = Number(params.batchId);
-
+export function MediaPanel({ batch }: MediaPanelProps) {
   return (
     <div className="flex flex-row card bg-base-300 text-white w-100 h-120 m-3">
-      <TabBar />
       <div className="w-px bg-base-100" />
       <main className="flex-1 overflow-y-auto">
-        {/* 2. Pass batchId as a prop to both children */}
-        {activeTab === "media" && <MediaView batchId={batchId} />}
-        {activeTab === "settings" && <SettingsView />}
+        <MediaView batch={batch} />
       </main>
     </div>
   );

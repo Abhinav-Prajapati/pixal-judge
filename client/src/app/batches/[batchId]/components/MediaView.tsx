@@ -1,60 +1,34 @@
 "use client";
 import React, { useRef, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  getBatchOptions,
   uploadAndAddImagesToBatchMutation,
   getBatchQueryKey,
-  getAllImagesOptions,
   addImagesToBatchMutation
 } from "@/client/@tanstack/react-query.gen";
 import { Loader2, CloudUpload, Upload, PlusCircle, LayoutGrid, List } from "lucide-react";
 import { ImageGrid } from './SelectableImageGrid';
-import { useImageSelectionStore } from "../store/useImageSelectionStore";
+import { useImageSelectionStore } from '../store/useImageSelectionStore';
+import type { BatchResponse } from "@/client/types.gen";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 
 interface MediaViewProps {
-  batchId: number | null;
+  batch: BatchResponse | null;
 }
 
-export function MediaView({ batchId }: MediaViewProps) {
+export function MediaView({ batch }: MediaViewProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
-
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-
-  // Component state for the add images modal
   const [showAddModal, setShowAddModal] = useState(false);
+  const { selectedImages, clearSelection } = useImageSelectionStore();
 
-  // Zustand state for image selection in the modal
-  const {
-    selectedImages,
-    clearSelection
-  } = useImageSelectionStore();
-
-  // Query to get all images from the server for the modal
-  const { data: allImagesData, isLoading: isAllImagesLoading } = useQuery({
-    ...getAllImagesOptions(),
-    enabled: showAddModal, // Only fetch when the modal is open
-  });
-
-  const {
-    data: batch,
-    isLoading: isBatchLoading,
-    error: queryError
-  } = useQuery({
-    ...getBatchOptions({ path: { batch_id: batchId! } }),
-    enabled: !!batchId,
-  });
-
-  // Handle file uploads with useMutation for better state management
   const uploadMutation = useMutation({
     mutationFn: uploadAndAddImagesToBatchMutation().mutationFn,
     onSuccess: () => {
-      // Invalidate the query to refetch data and show new images
       queryClient.invalidateQueries({
-        queryKey: getBatchQueryKey({ path: { batch_id: batchId! } })
+        queryKey: getBatchQueryKey({ path: { batch_id: batch!.id } })
       });
     },
     onError: (error) => {
@@ -62,14 +36,12 @@ export function MediaView({ batchId }: MediaViewProps) {
     },
   });
 
-  // Mutation to add selected images to the current batch
   const addImagesToBatch = useMutation({
     ...addImagesToBatchMutation(),
     onSuccess: () => {
       clearSelection();
       setShowAddModal(false);
-      // Invalidate the batch query to show the newly added images
-      queryClient.invalidateQueries(getBatchOptions({ path: { batch_id: batchId! } }));
+      queryClient.invalidateQueries({ queryKey: ['getBatch', { path: { batch_id: batch!.id } }] });
     },
     onError: (error) => {
       console.error("Failed to add images to batch:", error);
@@ -77,9 +49,9 @@ export function MediaView({ batchId }: MediaViewProps) {
   });
 
   const handleAddImages = () => {
-    if (batchId && selectedImages.length > 0) {
+    if (batch && selectedImages.length > 0) {
       addImagesToBatch.mutate({
-        path: { batch_id: batchId },
+        path: { batch_id: batch.id },
         body: {
           image_ids: selectedImages.map(img => img.id)
         }
@@ -88,12 +60,12 @@ export function MediaView({ batchId }: MediaViewProps) {
   };
 
   const processFiles = async (files: FileList) => {
-    if (!batchId) {
+    if (!batch) {
       console.error("Cannot upload: No batch is currently selected.");
       return;
     }
     uploadMutation.mutate({
-      path: { batch_id: batchId },
+      path: { batch_id: batch.id },
       body: { files: Array.from(files) },
     });
   };
@@ -107,24 +79,14 @@ export function MediaView({ batchId }: MediaViewProps) {
   const handleUploadClick = () => fileInputRef.current?.click();
 
   const renderContent = () => {
-    if (isBatchLoading) {
-      return (
-        <div className="flex items-center justify-center h-full">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
-        </div>
-      );
-    }
-
-    const error = queryError || uploadMutation.error;
-    if (error) {
+    if (uploadMutation.error) {
       return (
         <div className="flex items-center justify-center h-full text-error">
-          Error: {error.message}
+          Error: {uploadMutation.error.message}
         </div>
       );
     }
 
-    // --- MODIFIED ---
     if (batch?.image_associations && batch.image_associations.length > 0) {
       if (viewMode === 'grid') {
         return (
@@ -169,9 +131,7 @@ export function MediaView({ batchId }: MediaViewProps) {
         );
       }
     }
-    // --- END MODIFIED ---
 
-    // Default empty/upload state
     return (
       <div
         onClick={handleUploadClick}
@@ -199,7 +159,7 @@ export function MediaView({ batchId }: MediaViewProps) {
         <div className="flex gap-2">
           <button
             onClick={handleUploadClick}
-            disabled={uploadMutation.isPending || !batchId}
+            disabled={uploadMutation.isPending || !batch}
             className="flex items-center justify-center gap-2 px-4 py-2 text-sm rounded-full bg-base-100 hover:bg-white/20 transition-colors w-32 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {uploadMutation.isPending ? (
@@ -213,7 +173,7 @@ export function MediaView({ batchId }: MediaViewProps) {
               clearSelection();
               setShowAddModal(true);
             }}
-            disabled={!batchId}
+            disabled={!batch}
             className="flex items-center justify-center gap-2 px-4 py-2 text-sm rounded-full bg-base-100 hover:bg-white/20 transition-colors w-32 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <PlusCircle className="h-4 w-4" /><span>Add Images</span>
@@ -237,42 +197,6 @@ export function MediaView({ batchId }: MediaViewProps) {
         </div>
       </div>
       <div className="flex-1 p-3 overflow-y-auto">{renderContent()}</div>
-
-      {showAddModal && (
-        <div className="modal modal-open">
-          <div className="modal-box w-11/12 max-w-5xl h-5/6">
-            <h3 className="font-bold text-lg">Select Images to Add</h3>
-            <div className="py-4 h-full flex flex-col">
-              {isAllImagesLoading ? (
-                <div className="flex items-center justify-center h-full">
-                  <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
-                </div>
-              ) : (
-                <div className="flex-grow overflow-y-auto p-4">
-                  {allImagesData && allImagesData.length > 0 ? (
-                    <ImageGrid images={allImagesData} />
-                  ) : (
-                    <p>No images found on the server.</p>
-                  )}
-                </div>
-              )}
-            </div>
-            <div className="modal-action">
-              <button className="btn btn-ghost" onClick={() => {
-                setShowAddModal(false);
-                clearSelection();
-              }}>Cancel</button>
-              <button
-                className="btn btn-primary"
-                onClick={handleAddImages}
-                disabled={selectedImages.length === 0 || addImagesToBatch.isPending}
-              >
-                {addImagesToBatch.isPending ? 'Adding...' : `Add ${selectedImages.length} Image(s)`}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

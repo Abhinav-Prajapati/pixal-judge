@@ -1,47 +1,35 @@
-// src/components/GroupPanel.tsx
 'use client'
 import { useMemo, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getBatchOptions, removeImagesFromBatchMutation } from '@/client/@tanstack/react-query.gen';
-import type { ImageResponse } from '@/client/types.gen';
+import type { BatchResponse, ImageResponse } from '@/client/types.gen';
 import { ImageGrid } from './SelectableImageGrid';
 import { useImageSelectionStore } from '../store/useImageSelectionStore';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { removeImagesFromBatchMutation } from '@/client/@tanstack/react-query.gen';
 
-export function GroupPanel() {
-  const params = useParams();
-  const batchId = Number(params.batchId);
+interface GroupPanelProps {
+  batch: BatchResponse;
+}
+
+export function GroupPanel({ batch }: GroupPanelProps) {
   const queryClient = useQueryClient();
-
-  // --- Component State ---
   const [activeTab, setActiveTab] = useState<'grouped' | 'all'>('grouped');
   const [showRemoveModal, setShowRemoveModal] = useState(false);
 
-  // --- Zustand State Hook ---
   const {
     selectedImages,
     isSelectionActive,
     clearSelection
   } = useImageSelectionStore();
 
-  // --- Data Fetching ---
-  const { data: batch, isLoading, error } = useQuery({
-    ...getBatchOptions({ path: { batch_id: batchId } }),
-    enabled: !isNaN(batchId),
-  });
-
-  // --- Mutations ---
   const removeImagesMutation = useMutation({
     ...removeImagesFromBatchMutation(),
     onSuccess: () => {
       clearSelection();
       setShowRemoveModal(false);
-      // Invalidate the query to refetch the batch data with the removed images
-      queryClient.invalidateQueries(getBatchOptions({ path: { batch_id: batchId } }));
+      queryClient.invalidateQueries({ queryKey: ['getBatch', { path: { batch_id: batch.id } }] });
     },
     onError: (err) => {
       console.error("Failed to remove images from batch:", err);
-      // Optionally show an error message to the user
       setShowRemoveModal(false);
     }
   });
@@ -49,7 +37,7 @@ export function GroupPanel() {
   const handleRemoveImages = () => {
     if (selectedImages.length > 0) {
       removeImagesMutation.mutate({
-        path: { batch_id: batchId },
+        path: { batch_id: batch.id },
         body: {
           image_ids: selectedImages.map(img => img.id)
         }
@@ -57,8 +45,8 @@ export function GroupPanel() {
     }
   };
 
-  // --- Memoized Data Transformation ---
   const clusterEntries = useMemo(() => {
+    // Optional chaining here is good practice
     if (!batch?.image_associations) return [];
     const clusters = batch.image_associations.reduce((acc, assoc) => {
       const { image, group_label } = assoc;
@@ -68,22 +56,26 @@ export function GroupPanel() {
       return acc;
     }, {} as Record<string, ImageResponse[]>);
 
-    // Sort the entries by the number of images in descending order
     const unsortedEntries = Object.entries(clusters);
     unsortedEntries.sort(([, imagesA], [, imagesB]) => imagesB.length - imagesA.length);
     return unsortedEntries;
   }, [batch]);
 
   const allImages = useMemo(() => {
+    // Optional chaining here is good practice
     if (!batch?.image_associations) return [];
     return batch.image_associations.map(assoc => assoc.image);
   }, [batch]);
 
-  // --- Render Logic ---
   const renderContent = () => {
-    if (isLoading) return <div className="flex items-center justify-center h-full"><span className="loading loading-spinner loading-lg"></span></div>;
-    if (error) return <div className="flex items-center justify-center h-full text-error">Error: {error.message}</div>;
-    if (!batch || batch.image_associations.length === 0) return <div className="flex items-center justify-center h-full text-base-content/60"><p>No images in this batch.</p></div>;
+    // FIX: Add optional chaining to safely access 'length'
+    if (!batch || !batch.image_associations?.length) {
+      return (
+        <div className="flex items-center justify-center h-full text-base-content/60">
+          <p>No images in this batch.</p>
+        </div>
+      );
+    }
 
     const content = activeTab === 'grouped' ? (
       <div className="flex flex-row flex-wrap items-start gap-6">
@@ -105,7 +97,6 @@ export function GroupPanel() {
 
     return (
       <div className="flex flex-col h-full w-full">
-        {/* Combined Tabs and Selection Bar - now sticky */}
         <div className="sticky top-0 z-10 flex items-end justify-between">
           <div className="flex">
             <a
@@ -144,8 +135,6 @@ export function GroupPanel() {
             </div>
           )}
         </div>
-
-        {/* Tab Content Container */}
         <div className="flex-grow p-4 bg-base-200 rounded-b-lg shadow-inner overflow-y-auto">
           {content}
         </div>
