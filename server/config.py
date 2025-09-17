@@ -12,7 +12,7 @@ load_dotenv()
 
 # Database connection URL for PostgreSQL.
 # Format: postgresql://user:password@host:port/dbname
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://cluster_user:secure_password@localhost:5432/image_db")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 # The custom schema name in the PostgreSQL database.
 DB_SCHEMA = "image_clustering"
