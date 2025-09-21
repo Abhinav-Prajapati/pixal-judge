@@ -1,6 +1,19 @@
 "use client";
-import { Button, ButtonGroup } from "@heroui/button";
-import { useState, FormEvent, useRef } from 'react';
+import {
+  Button,
+  Card,
+  CardBody,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Input,
+  Chip,
+  Spinner,
+  useDisclosure
+} from "@heroui/react";
+import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import {
   QueryClient,
@@ -18,54 +31,69 @@ import {
   getAllBatchesQueryKey
 } from '../../client/@tanstack/react-query.gen';
 
+// Define API URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 client.setConfig({
   baseUrl: API_BASE_URL
 });
 
+// Initialize Query Client
 const queryClient = new QueryClient();
 
+// --- SVG ICONS ---
+// Using self-contained SVG components for icons to keep dependencies low.
+const FilterIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg aria-hidden="true" fill="none" focusable="false" height="1em" role="presentation" viewBox="0 0 24 24" width="1em" {...props}>
+    <path d="M3 4h18v2H3V4zm2 7h14v2H5v-2zm2 7h10v2H7v-2z" fill="currentColor" />
+  </svg>
+);
 
-function CreateBatchModal({ modalId }: { modalId: string; }) {
+const ProjectPlaceholderIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg aria-hidden="true" fill="none" focusable="false" height="1em" role="presentation" viewBox="0 0 24 24" width="1em" {...props}>
+    <path d="M17 10.5V7c0-1.66-1.34-3-3-3H5c-1.66 0-3 1.34-3 3v10c0 1.66 1.34 3 3 3h7c1.66 0 3-1.34 3-3v-3.5l4 4v-11l-4 4z" fill="currentColor" />
+  </svg>
+);
+
+const MoreIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg aria-hidden="true" fill="none" focusable="false" height="1em" role="presentation" viewBox="0 0 24 24" width="1em" {...props}>
+    <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" fill="currentColor" />
+  </svg>
+);
+
+
+// --- CREATE PROJECT MODAL ---
+function CreateProjectModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void; }) {
   const [selectedImageIds, setSelectedImageIds] = useState<Set<number>>(new Set());
-  const [batchName, setBatchName] = useState('');
+  const [projectName, setProjectName] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const reactQueryClient = useQueryClient();
 
-  // Fetch all images using React Query. Data will be cached.
   const { data: allImages = [], isLoading: isLoadingImages } = useQuery(getAllImagesOptions());
-
-  // Mutation for creating a new batch
-  const createBatch = useMutation(createBatchMutation());
+  const createProject = useMutation(createBatchMutation());
 
   const handleImageSelect = (imageId: number) => {
     setSelectedImageIds(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(imageId)) {
-        newSet.delete(imageId);
-      } else {
-        newSet.add(imageId);
-      }
+      newSet.has(imageId) ? newSet.delete(imageId) : newSet.add(imageId);
       return newSet;
     });
   };
 
   const resetState = () => {
-    setBatchName('');
+    setProjectName('');
     setSelectedImageIds(new Set());
     setError(null);
   };
 
   const handleClose = () => {
     resetState();
-    dialogRef.current?.close();
+    onClose();
   };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!batchName.trim()) {
-      setError("Please provide a batch name.");
+    if (!projectName.trim()) {
+      setError("Please provide a project name.");
       return;
     }
     if (selectedImageIds.size === 0) {
@@ -74,214 +102,199 @@ function CreateBatchModal({ modalId }: { modalId: string; }) {
     }
     setError(null);
 
-    createBatch.mutate({
-      body: {
-        name: batchName,
-        image_ids: Array.from(selectedImageIds),
-      }
+    createProject.mutate({
+      body: { name: projectName, image_ids: Array.from(selectedImageIds) }
     }, {
       onSuccess: () => {
-        // On success, invalidate the batches query to refetch the list
         reactQueryClient.invalidateQueries({ queryKey: getAllBatchesQueryKey() });
         handleClose();
       },
       onError: (err) => {
-        setError("Failed to create batch. Please try again.");
+        setError("Failed to create project. Please try again.");
         console.error(err);
       }
     });
   };
 
   return (
-    <dialog id={modalId} ref={dialogRef} className="modal">
-      <div className="modal-box w-11/12 max-w-3xl max-h-[90vh] flex flex-col">
-        <h3 className="font-bold text-2xl">Create New Batch</h3>
-        <form onSubmit={handleSubmit} className="flex flex-col flex-grow min-h-0 py-4">
-          <div className="form-control">
-            <input
-              type="text"
-              placeholder="Enter Batch Name"
-              value={batchName}
-              onChange={(e) => setBatchName(e.target.value)}
-              className="input input-bordered w-full mb-4"
-            />
-          </div>
-          <p className="mb-2 font-semibold">Select Images ({selectedImageIds.size} selected)</p>
-          <div className="flex-grow border border-base-300 bg-base-200 rounded-lg p-2 overflow-y-auto">
-            {isLoadingImages && <div className="flex justify-center p-4"><span className="loading loading-spinner"></span></div>}
-            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
-              {allImages.map(img => (
-                <div key={img.id} onClick={() => handleImageSelect(img.id)} className={`relative aspect-square rounded-md overflow-hidden cursor-pointer ring-offset-base-100 ring-offset-2 ${selectedImageIds.has(img.id) ? 'ring-2 ring-primary' : ''}`}>
-                  <img src={`${API_BASE_URL}/images/thumbnail/${img.id}`} alt={img.original_filename} className="h-full w-full object-cover" />
-                  {selectedImageIds.has(img.id) && <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center text-white">✓</div>}
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      size="3xl"
+      scrollBehavior="inside"
+      classNames={{
+        base: "max-h-[90vh] bg-neutral-900 border border-neutral-700 text-white",
+        header: "border-b border-neutral-700",
+        footer: "border-t border-neutral-700",
+        body: "py-6",
+        closeButton: "text-white hover:bg-neutral-700",
+      }}
+    >
+      <ModalContent>
+        <ModalHeader>
+          <h3 className="text-xl font-bold">Create New Project</h3>
+        </ModalHeader>
+        <form onSubmit={handleSubmit}>
+          <ModalBody>
+            <div className="space-y-6">
+              <Input
+                type="text"
+                label="Project Name"
+                placeholder="Enter project name"
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+                variant="bordered"
+                isRequired
+              />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold">Select Images</p>
+                  <Chip color="primary" variant="flat">{selectedImageIds.size} selected</Chip>
                 </div>
-              ))}
+                <div className="border-2 border-neutral-700 rounded-lg p-4 bg-neutral-800 max-h-80 overflow-y-auto">
+                  {isLoadingImages ? (
+                    <div className="flex justify-center p-4"><Spinner size="lg" /></div>
+                  ) : (
+                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
+                      {allImages.map(img => (
+                        <div key={img.id} onClick={() => handleImageSelect(img.id)} className={`relative aspect-square rounded-md overflow-hidden cursor-pointer border-2 transition-all ${selectedImageIds.has(img.id) ? 'border-primary' : 'border-transparent hover:border-neutral-600'}`}>
+                          <img src={`${API_BASE_URL}/images/thumbnail/${img.id}`} alt={img.original_filename} className="h-full w-full object-cover" />
+                          {selectedImageIds.has(img.id) && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xl">✓</div>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              {error && <p className="text-danger text-sm">{error}</p>}
             </div>
-          </div>
-          {error && <p className="text-error text-sm mt-2">{error}</p>}
-          <div className="modal-action mt-4">
-            <button type="button" onClick={handleClose} className="btn">Cancel</button>
-            <button type="submit" disabled={createBatch.isPending} className="btn btn-primary">
-              {createBatch.isPending && <span className="loading loading-spinner"></span>}
-              {createBatch.isPending ? 'Creating...' : 'Create Batch'}
-            </button>
-          </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="light" onPress={handleClose}>Cancel</Button>
+            <Button color="primary" type="submit" isLoading={createProject.isPending}>
+              {createProject.isPending ? 'Creating...' : 'Create Project'}
+            </Button>
+          </ModalFooter>
         </form>
-      </div>
-      <form method="dialog" className="modal-backdrop">
-        <button onClick={handleClose}>close</button>
-      </form>
-    </dialog>
+      </ModalContent>
+    </Modal>
   );
 }
 
-// --- MAIN BATCHES PAGE COMPONENT ---
-function BatchesPage() {
-  const modalId = "create_batch_modal";
-  const { data: batches = [], isLoading, error } = useQuery(getAllBatchesOptions());
+// --- PROJECT CARD ---
+function ProjectCard({ project }: { project: any }) {
+  const creationDate = new Date().toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric'
+  });
+
+  return (
+    <Link href={`/batches/${project.id}`}>
+      <Card
+        isPressable
+        className="bg-neutral-900 hover:bg-neutral-800 group transition-colors"
+      >
+        <CardBody className="p-4">
+          <div className="flex flex-col gap-4">
+            <div className="aspect-[16/9] bg-neutral-800 rounded-lg flex items-center justify-center">
+              <ProjectPlaceholderIcon className="w-12 h-12 text-neutral-600" />
+            </div>
+            <div className="flex justify-between items-start">
+              <div className="text-left">
+                <p className="font-semibold text-white truncate">{project.batch_name}</p>
+                <p className="text-sm text-neutral-400">Created {creationDate}</p>
+              </div>
+              <Button isIconOnly variant="light" size="sm" className="text-neutral-500 hover:text-white">
+                <MoreIcon />
+              </Button>
+            </div>
+          </div>
+        </CardBody>
+      </Card>
+    </Link>
+  );
+}
+
+
+// --- MAIN PROJECTS PAGE COMPONENT ---
+function ProjectsPage() {
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { data: projects = [], isLoading, error } = useQuery(getAllBatchesOptions());
 
   const renderContent = () => {
     if (isLoading) {
-      return <div className="text-center py-12"><span className="loading loading-spinner loading-lg"></span></div>;
+      return <div className="flex justify-center items-center py-24"><Spinner size="lg" /></div>;
     }
 
     if (error) {
       return (
-        <div role="alert" className="alert alert-error">
-          <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          <div><h3 className="font-bold">An Error Occurred</h3><div className="text-xs">Could not connect to the API.</div></div>
+        <div className="bg-danger-500/10 border border-danger-500/20 text-danger-400 p-6 rounded-lg text-center mt-8">
+          <h3 className="font-bold">An Error Occurred</h3>
+          <p className="text-sm">Could not connect to the API. Please check your connection and try again.</p>
         </div>
       );
     }
 
-    if (Array.isArray(batches) && batches.length > 0) {
+    if (Array.isArray(projects) && projects.length > 0) {
       return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {batches.map(batch => {
-            const previewImages = batch.image_associations.slice(0, 3);
-            const totalImages = batch.image_associations.length;
-            const totalGroups = new Set(
-              batch.image_associations
-                .map(assoc => assoc.group_label)
-                .filter(label => label !== null && label !== '-1')
-            ).size;
-
-            const remainingImagesCount = totalImages > 3 ? `+${totalImages - 3}` : '';
-
-            return (
-              <Link key={batch.id} href={`/batches/${batch.id}`} className="card bg-base-100 shadow-xl group transition-all duration-300 ease-in-out border border-base-300 hover:border-primary hover:shadow-2xl">
-                <div className="card-body p-6 relative overflow-hidden flex-row items-center">
-                  {/* Stacked Image Previews */}
-                  <div className="relative w-max h-40 flex-shrink-0">
-                    {previewImages.slice().reverse().map((assoc, index) => {
-                      const positionOffset = index * 8; // Reduced offset for tighter stacking
-
-                      return (
-                        <div
-                          key={assoc.image.id}
-                          className="absolute w-28 h-40 rounded-lg overflow-hidden bg-base-200"
-                          style={{
-                            bottom: '0px',
-                            left: '0px',
-                            transform: `translate(${positionOffset}px, -${positionOffset}px)`,
-                            zIndex: 3 - index,
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                            transition: 'transform 0.3s ease-in-out',
-                          }}
-                        >
-                          <img
-                            src={`${API_BASE_URL}/images/thumbnail/${assoc.image.id}`}
-                            alt="Batch image preview"
-                            className="w-full h-full object-cover rounded-lg"
-                          />
-                        </div>
-                      );
-                    })}
-                    {remainingImagesCount && (
-                      <div
-                        className="absolute w-28 h-40 rounded-lg flex items-center justify-center text-base-content text-lg bg-base-300 font-mono font-bold"
-                        style={{
-                          bottom: '0px',
-                          left: '0px',
-                          transform: `translate(${3 * 8}px, -${3 * 8}px)`,
-                          zIndex: 0,
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                        }}
-                      >
-                        {remainingImagesCount}
-                      </div>
-                    )}
-                    {previewImages.length === 0 && (
-                      <div className="absolute w-28 h-40 rounded-lg flex items-center justify-center text-base-content text-opacity-50 text-center bg-base-200 border border-base-content"
-                        style={{
-                          bottom: '0px',
-                          left: '0px',
-                          transform: 'translate(15px, -15px)',
-                          zIndex: 3
-                        }}>
-                        No Images
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Card Content */}
-                  <div className="flex flex-col justify-center ml-10 flex-grow font-mono">
-                    <div className="flex justify-between items-start mb-4">
-                      <h2 className="card-title text-xl font-bold text-primary truncate" title={batch.batch_name}>
-                        {batch.batch_name}
-                      </h2>
-                      <div className={`badge ${batch.status === 'complete' ? 'badge-success' : 'badge-warning'} font-mono`}>
-                        {batch.status}
-                      </div>
-                    </div>
-                    <p className="text-base-content/80 text-sm mb-2">Total Images: {totalImages}</p>
-                    <p className="text-base-content/80 text-sm">Total Groups: {totalGroups}</p>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-8">
+          {projects.map(project => <ProjectCard key={project.id} project={project} />)}
         </div>
       );
     }
 
+    // Empty state can be designed here if needed
     return (
-      <div className="text-center py-12 hero bg-base-200 rounded-lg">
-        <div className="hero-content text-center">
-          <div className="max-w-md">
-            <h1 className="text-3xl font-bold">No Batches Found</h1>
-            <p className="py-6">Create your first batch to start analyzing image clusters.</p>
-            <button className="btn btn-primary" onClick={() => (document.getElementById(modalId) as HTMLDialogElement)?.showModal()}>Get Started</button>
-          </div>
-        </div>
+      <div className="text-center py-24 border-2 border-dashed border-neutral-800 rounded-lg mt-8">
+        <h2 className="text-xl font-bold text-white">No Projects Yet</h2>
+        <p className="text-neutral-400 mt-2 mb-6">Get started by creating your first project.</p>
+        <Button color="primary" size="lg" onPress={onOpen}>
+          Create New Project
+        </Button>
       </div>
     );
   };
 
   return (
     <>
-      <CreateBatchModal modalId={modalId} />
-      <div className="container mx-auto px-4 py-8">
-        <header className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-4xl font-extrabold tracking-tight">Clustering Batches</h1>
-            <p className="mt-2 text-lg text-base-content text-opacity-70">Manage and analyze your image batches.</p>
+      <CreateProjectModal isOpen={isOpen} onClose={onClose} />
+      <div className="bg-black min-h-screen text-neutral-300">
+        <div className="container mx-auto px-6 py-8">
+          <header className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-white">Your Projects</h1>
+              <p className="mt-1 text-neutral-400">{projects.length} project{projects.length !== 1 && 's'}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="bordered" className="text-neutral-300 border-neutral-700">Select Projects</Button>
+              <Button color="primary" onPress={onOpen} className="font-semibold">
+                + New project
+              </Button>
+            </div>
+          </header>
+
+          <div className="flex items-center gap-4">
+            <Input
+              placeholder="Search projects..."
+              variant="bordered"
+              className="flex-grow"
+            />
+            <Button isIconOnly variant="bordered" className="text-neutral-300 border-neutral-700">
+              <FilterIcon />
+            </Button>
           </div>
-          <Button color="primary" onClick={() => (document.getElementById(modalId) as HTMLDialogElement)?.showModal()} className="">
-            Create New Batch
-          </Button>
-        </header>
-        {renderContent()}
+
+          {renderContent()}
+        </div>
       </div>
     </>
   );
 }
 
 // --- PROVIDER WRAPPER ---
-export default function BatchesPageWrapper() {
+export default function ProjectsPageWrapper() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BatchesPage />
+      <ProjectsPage />
     </QueryClientProvider>
   );
 }
