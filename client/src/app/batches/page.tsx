@@ -1,5 +1,5 @@
 "use client";
-
+import { Button, ButtonGroup } from "@heroui/button";
 import { useState, FormEvent, useRef } from 'react';
 import Link from 'next/link';
 import {
@@ -267,9 +267,9 @@ function BatchesPage() {
             <h1 className="text-4xl font-extrabold tracking-tight">Clustering Batches</h1>
             <p className="mt-2 text-lg text-base-content text-opacity-70">Manage and analyze your image batches.</p>
           </div>
-          <button onClick={() => (document.getElementById(modalId) as HTMLDialogElement)?.showModal()} className="btn btn-primary">
+          <Button color="primary" onClick={() => (document.getElementById(modalId) as HTMLDialogElement)?.showModal()} className="">
             Create New Batch
-          </button>
+          </Button>
         </header>
         {renderContent()}
       </div>
