@@ -1,11 +1,25 @@
-'use client'
-import { useState, useRef } from "react";
+'use client';
+import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, ArrowLeft, Edit3, Trash2 } from "lucide-react";
 import toast from 'react-hot-toast';
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { renameBatchMutation, deleteBatchMutation } from "@/client/@tanstack/react-query.gen";
-import type { BatchResponse } from "@/client/types.gen";
+import {
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
+  Button,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Input,
+  useDisclosure,
+} from "@heroui/react";
+import { renameBatchMutation, deleteBatchMutation } from "../../../../client/@tanstack/react-query.gen";
+import type { BatchResponse } from "../../../../client/types.gen";
 
 interface BatchHeaderProps {
   batch: BatchResponse;
@@ -14,13 +28,15 @@ interface BatchHeaderProps {
 export function BatchHeader({ batch }: BatchHeaderProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { isOpen: isRenameOpen, onOpen: onRenameOpen, onClose: onRenameClose } = useDisclosure();
+  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
 
   const renameMutation = useMutation({
     mutationFn: renameBatchMutation().mutationFn,
     onSuccess: (data) => {
       queryClient.setQueryData(['getBatch', { path: { batch_id: batch.id } }], data);
       toast.success("Batch renamed successfully!");
-      (document.getElementById('rename_modal') as HTMLDialogElement)?.close();
+      onRenameClose();
     },
     onError: () => {
       toast.error("Failed to rename batch.");
@@ -31,6 +47,7 @@ export function BatchHeader({ batch }: BatchHeaderProps) {
     mutationFn: deleteBatchMutation().mutationFn,
     onSuccess: () => {
       toast.success("Batch deleted successfully!");
+      queryClient.invalidateQueries({ queryKey: ['getAllBatches'] });
       router.push('/batches');
     },
     onError: () => {
@@ -55,44 +72,70 @@ export function BatchHeader({ batch }: BatchHeaderProps) {
     });
   };
 
-  const showModal = (id: string) => {
-    (document.getElementById(id) as HTMLDialogElement)?.showModal();
-  };
-
   return (
     <>
-      <div className="pl-2 pt-1">
-        <details className="dropdown">
-          <summary className="btn m-1 flex items-center gap-2 rounded-full">
-            <ChevronDown className="w-4 h-4" />
-            {batch.batch_name}
-          </summary>
-          <ul className="menu dropdown-content bg-base-100 rounded-box z-[1] w-52 p-2 shadow-sm">
-            <li><button onClick={handleGoToBatches}><ArrowLeft className="w-4 h-4 mr-2" /> All Batches</button></li>
-            <li><button onClick={() => showModal('rename_modal')} disabled={renameMutation.isPending || deleteMutation.isPending}><Edit3 className="w-4 h-4 mr-2" /> Rename</button></li>
-            <li><button className="text-error" onClick={() => showModal('delete_modal')} disabled={renameMutation.isPending || deleteMutation.isPending}><Trash2 className="w-4 h-4 mr-2" /> Delete</button></li>
-          </ul>
-        </details>
+      <div className="pl-4 pt-3 pb-2 border-b border-neutral-800">
+        <Dropdown>
+          <DropdownTrigger>
+            <Button variant="light" className="text-lg font-semibold text-white">
+              {batch.batch_name}
+              <ChevronDown className="w-5 h-5 ml-1" />
+            </Button>
+          </DropdownTrigger>
+          <DropdownMenu
+            aria-label="Batch Actions"
+            disabledKeys={renameMutation.isPending || deleteMutation.isPending ? ["rename", "delete"] : []}
+            onAction={(key) => {
+              if (key === 'all_batches') handleGoToBatches();
+              if (key === 'rename') onRenameOpen();
+              if (key === 'delete') onDeleteOpen();
+            }}
+          >
+            <DropdownItem key="all_batches" startContent={<ArrowLeft className="w-4 h-4" />}>
+              All Batches
+            </DropdownItem>
+            <DropdownItem key="rename" startContent={<Edit3 className="w-4 h-4" />}>
+              Rename
+            </DropdownItem>
+            <DropdownItem key="delete" className="text-danger" color="danger" startContent={<Trash2 className="w-4 h-4" />}>
+              Delete
+            </DropdownItem>
+          </DropdownMenu>
+        </Dropdown>
       </div>
+
       <RenameModal
         batchName={batch.batch_name}
         onSave={handleRenameConfirm}
         isPending={renameMutation.isPending}
+        isOpen={isRenameOpen}
+        onClose={onRenameClose}
       />
       <DeleteModal
         batchName={batch.batch_name}
         onDelete={handleDeleteConfirm}
         isPending={deleteMutation.isPending}
+        isOpen={isDeleteOpen}
+        onClose={onDeleteClose}
       />
     </>
   );
 }
 
-function RenameModal({ batchName, onSave, isPending }: { batchName: string; onSave: (newName: string) => void; isPending: boolean; }) {
-  const [name, setName] = useState(batchName);
-  const dialogRef = useRef<HTMLDialogElement>(null);
+// --- MODAL COMPONENTS ---
 
-  const handleSubmit = (e: React.FormEvent) => {
+interface RenameModalProps {
+  batchName: string;
+  onSave: (newName: string) => void;
+  isPending: boolean;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+function RenameModal({ batchName, onSave, isPending, isOpen, onClose }: RenameModalProps) {
+  const [name, setName] = useState(batchName);
+
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (name.trim()) {
       onSave(name.trim());
@@ -100,40 +143,56 @@ function RenameModal({ batchName, onSave, isPending }: { batchName: string; onSa
   };
 
   return (
-    <dialog id="rename_modal" ref={dialogRef} className="modal">
-      <div className="modal-box">
-        <h3 className="font-bold text-lg">Rename Batch</h3>
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <ModalContent>
+        <ModalHeader>Rename Batch</ModalHeader>
         <form onSubmit={handleSubmit}>
-          <div className="form-control py-4">
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="input input-bordered w-full" autoFocus disabled={isPending} />
-          </div>
-          <div className="modal-action">
-            <button type="button" className="btn" onClick={() => dialogRef.current?.close()} disabled={isPending}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={isPending}>Save</button>
-          </div>
+          <ModalBody>
+            <Input
+              type="text"
+              label="Batch Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoFocus
+              disabled={isPending}
+            />
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="light" onPress={onClose} disabled={isPending}>Cancel</Button>
+            <Button color="primary" type="submit" isLoading={isPending} disabled={!name?.trim()}>
+              {isPending ? "Saving..." : "Save"}
+            </Button>
+          </ModalFooter>
         </form>
-      </div>
-      <form method="dialog" className="modal-backdrop"><button>close</button></form>
-    </dialog>
+      </ModalContent>
+    </Modal>
   );
 }
 
-function DeleteModal({ batchName, onDelete, isPending }: { batchName: string; onDelete: () => void; isPending: boolean; }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const handleDelete = () => {
-    onDelete();
-  };
+interface DeleteModalProps {
+  batchName: string;
+  onDelete: () => void;
+  isPending: boolean;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+function DeleteModal({ batchName, onDelete, isPending, isOpen, onClose }: DeleteModalProps) {
   return (
-    <dialog id="delete_modal" ref={dialogRef} className="modal">
-      <div className="modal-box">
-        <h3 className="font-bold text-lg">Delete Batch</h3>
-        <p className="py-4">Are you sure you want to delete **{batchName}**? This action cannot be undone.</p>
-        <div className="modal-action">
-          <button className="btn" onClick={() => dialogRef.current?.close()} disabled={isPending}>Cancel</button>
-          <button className="btn btn-error" onClick={handleDelete} disabled={isPending}>Delete</button>
-        </div>
-      </div>
-      <form method="dialog" className="modal-backdrop"><button>close</button></form>
-    </dialog>
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <ModalContent>
+        <ModalHeader>Delete Batch</ModalHeader>
+        <ModalBody>
+          <p>Are you sure you want to delete <strong>{batchName}</strong>? This action cannot be undone.</p>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="light" onPress={onClose} disabled={isPending}>Cancel</Button>
+          <Button color="danger" onPress={onDelete} isLoading={isPending}>
+            {isPending ? "Deleting..." : "Delete"}
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
   );
 }
+
