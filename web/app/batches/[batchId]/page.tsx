@@ -21,6 +21,8 @@ import {
   ModalFooter,
   Input,
   useDisclosure,
+  Tabs,
+  Tab,
 } from "@heroui/react";
 import { ArrowLeft, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -253,9 +255,18 @@ export default function BatchImagesPage() {
 
           {/* Main Content Area */}
           <div className="flex-grow overflow-y-auto">
-            <Card className='p-4'>
-              <ImageGrid images={allImages} />
-            </Card>
+            <Tabs aria-label="Options">
+              <Tab key="photos" title="Photos">
+                <Card className='p-4'>
+                  <ImageGrid images={allImages} />
+                </Card>
+              </Tab>
+              <Tab key="photo" title="Photos asdf">
+                <Card className='p-4'>
+                  <ImageGrid images={allImages} />
+                </Card>
+              </Tab>
+            </Tabs>
           </div>
         </div>
       </div>
