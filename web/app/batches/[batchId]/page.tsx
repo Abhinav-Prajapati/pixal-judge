@@ -30,15 +30,13 @@ import toast from 'react-hot-toast';
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 client.setConfig({ baseUrl: API_BASE_URL });
 
-// --- Helper Components ---
-
 function ImageGrid({ images }: { images: ImageResponse[] }) {
   if (!images || images.length === 0) {
     return <p className="text-base-content/60">No images to display.</p>;
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2 overflow-y-auto">
       {images.map((image) => (
         <ImageCard key={image.id} image={image} />
       ))}
@@ -117,9 +115,6 @@ function DeleteModal({ batchName, onDelete, isPending, isOpen, onClose }: Delete
     </Modal>
   );
 }
-
-
-// --- Main Page Component ---
 
 export default function BatchImagesPage() {
   const params = useParams();
@@ -229,34 +224,30 @@ export default function BatchImagesPage() {
 
   return (
     <>
-      <div className="flex flex-col gap-4 h-full w-full p-4">
-        {/* 1. Top Navbar */}
-        <nav className="flex flex-shrink-0 items-center gap-2">
-          <Button size="md" isIconOnly onPress={() => router.back()} >
-            <ArrowLeft />
-          </Button>
-          <Dropdown>
-            <DropdownTrigger>
-              <Button variant="bordered">{batch.batch_name} <ChevronDown size={18} /> </Button>
-            </DropdownTrigger>
-            <DropdownMenu
-              aria-label="Batch Actions"
-              onAction={(key) => {
-                if (key === 'rename') onRenameOpen();
-                if (key === 'delete') onDeleteOpen();
-              }}
-            >
-              <DropdownItem key="rename">Rename</DropdownItem>
-              <DropdownItem key="delete" className="text-danger" color="danger">
-                Delete Batch
-              </DropdownItem>
-            </DropdownMenu>
-          </Dropdown>
-        </nav>
-
-        {/* 2. Wrapper for Sidebar and Main Content */}
-        <div className="flex flex-row gap-4 flex-grow overflow-hidden">
-          {/* Sidebar */}
+      <div className="flex flex-row gap-4 h-full w-full p-4 overflow-hidden">
+        <div className="flex flex-col gap-4 w-64 flex-shrink-0">
+          <nav className="flex flex-shrink-0 items-center gap-2">
+            <Button size="md" isIconOnly onPress={() => router.back()} >
+              <ArrowLeft />
+            </Button>
+            <Dropdown>
+              <DropdownTrigger>
+                <Button variant="bordered">{batch.batch_name} <ChevronDown size={18} /> </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                aria-label="Batch Actions"
+                onAction={(key) => {
+                  if (key === 'rename') onRenameOpen();
+                  if (key === 'delete') onDeleteOpen();
+                }}
+              >
+                <DropdownItem key="rename">Rename</DropdownItem>
+                <DropdownItem key="delete" className="text-danger" color="danger">
+                  Delete Batch
+                </DropdownItem>
+              </DropdownMenu>
+            </Dropdown>
+          </nav>
           <Card className="py-4 w-64 flex-shrink-0">
             <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
               <p className="text-tiny uppercase font-bold">Batch Details</p>
@@ -264,39 +255,36 @@ export default function BatchImagesPage() {
               <small className="text-default-500">{allImages.length} images</small>
             </CardHeader>
             <CardBody className="overflow-visible py-2">
-              {/* ... Add other sidebar content here ... */}
             </CardBody>
           </Card>
+        </div>
 
-          {/* Main Content Area */}
-          <div className="flex-grow overflow-y-auto">
-            <Tabs aria-label="Image views">
-              <Tab key="all" title={`All Images (${allImages.length})`}>
-                <Card className='p-4'>
-                  <ImageGrid images={allImages} />
-                </Card>
-              </Tab>
-              <Tab key="grouped" title="Grouped View">
-                <Card className='p-4'>
-                  <div className="flex flex-col gap-6">
-                    {clusterEntries.map(([clusterId, images]) => (
-                      <section key={clusterId}>
-                        <h2 className="mb-3 text-lg font-bold">
-                          {clusterId}
-                          <span className="ml-2 text-sm font-normal text-default-500">({images.length})</span>
-                        </h2>
-                        <ImageGrid images={images} />
-                      </section>
-                    ))}
-                  </div>
-                </Card>
-              </Tab>
-            </Tabs>
-          </div>
+        <div className="flex-grow">
+          <Tabs aria-label="Image views " >
+            <Tab key="all" title={`All Images (${allImages.length})`}>
+              <Card className='p-4'>
+                <ImageGrid images={allImages} />
+              </Card>
+            </Tab>
+            <Tab key="grouped" title="Grouped View">
+              <Card className='p-4'>
+                <div className="flex flex-col gap-6 ">
+                  {clusterEntries.map(([clusterId, images]) => (
+                    <section key={clusterId}>
+                      <h2 className="mb-3 text-lg font-bold">
+                        {clusterId}
+                        <span className="ml-2 text-sm font-normal text-default-500">({images.length})</span>
+                      </h2>
+                      <ImageGrid images={images} />
+                    </section>
+                  ))}
+                </div>
+              </Card>
+            </Tab>
+          </Tabs>
         </div>
       </div>
 
-      {/* Modals */}
       <RenameModal
         batchName={batch.batch_name}
         onSave={handleRenameConfirm}
@@ -314,4 +302,3 @@ export default function BatchImagesPage() {
     </>
   );
 }
-
