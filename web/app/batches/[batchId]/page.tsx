@@ -140,6 +140,21 @@ export default function BatchImagesPage() {
     return batch.image_associations.map(assoc => assoc.image);
   }, [batch]);
 
+  const clusterEntries = useMemo(() => {
+    if (!batch?.image_associations) return [];
+    const clusters = batch.image_associations.reduce((acc, assoc) => {
+      const { image, group_label } = assoc;
+      const key = group_label ?? 'Ungrouped';
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(image);
+      return acc;
+    }, {} as Record<string, ImageResponse[]>);
+
+    const unsortedEntries = Object.entries(clusters);
+    unsortedEntries.sort(([, imagesA], [, imagesB]) => imagesB.length - imagesA.length);
+    return unsortedEntries;
+  }, [batch]);
+
   const renameMutation = useMutation({
     ...renameBatchMutation(),
     onSuccess: (data) => {
@@ -255,15 +270,25 @@ export default function BatchImagesPage() {
 
           {/* Main Content Area */}
           <div className="flex-grow overflow-y-auto">
-            <Tabs aria-label="Options">
-              <Tab key="photos" title="Photos">
+            <Tabs aria-label="Image views">
+              <Tab key="all" title={`All Images (${allImages.length})`}>
                 <Card className='p-4'>
                   <ImageGrid images={allImages} />
                 </Card>
               </Tab>
-              <Tab key="photo" title="Photos asdf">
+              <Tab key="grouped" title="Grouped View">
                 <Card className='p-4'>
-                  <ImageGrid images={allImages} />
+                  <div className="flex flex-col gap-6">
+                    {clusterEntries.map(([clusterId, images]) => (
+                      <section key={clusterId}>
+                        <h2 className="mb-3 text-lg font-bold">
+                          {clusterId}
+                          <span className="ml-2 text-sm font-normal text-default-500">({images.length})</span>
+                        </h2>
+                        <ImageGrid images={images} />
+                      </section>
+                    ))}
+                  </div>
                 </Card>
               </Tab>
             </Tabs>
