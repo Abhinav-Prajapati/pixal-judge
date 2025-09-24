@@ -36,7 +36,7 @@ function ImageGrid({ images }: { images: ImageResponse[] }) {
   }
 
   return (
-    <div className="flex flex-wrap gap-2 overflow-y-auto">
+    <div className="flex flex-wrap gap-2 ">
       {images.map((image) => (
         <ImageCard key={image.id} image={image} />
       ))}
@@ -262,13 +262,13 @@ export default function BatchImagesPage() {
         <div className="flex-grow">
           <Tabs aria-label="Image views " >
             <Tab key="all" title={`All Images (${allImages.length})`}>
-              <Card className='p-4'>
+              <Card className='p-4 overflow-y-auto h-[87vh]'>
                 <ImageGrid images={allImages} />
               </Card>
             </Tab>
             <Tab key="grouped" title="Grouped View">
-              <Card className='p-4'>
-                <div className="flex flex-col gap-6 ">
+              <Card>
+                <div className="flex flex-col gap-6 p-4 overflow-y-auto h-[87vh]">
                   {clusterEntries.map(([clusterId, images]) => (
                     <section key={clusterId}>
                       <h2 className="mb-3 text-lg font-bold">
