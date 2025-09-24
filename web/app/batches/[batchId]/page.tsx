@@ -7,6 +7,7 @@ import type { ImageResponse } from '@/client/types.gen';
 import { getBatchOptions, renameBatchMutation, deleteBatchMutation } from '@/client/@tanstack/react-query.gen';
 import { client } from '@/client/client.gen';
 import { ImageCard } from '@/components/ui/ImageCard';
+import { ClusteringToolbox } from '@/components/ui/ClusteringToolbox'; // Adjust path as needed
 import { Card, CardBody, CardHeader } from '@heroui/card';
 import {
   Dropdown,
@@ -34,7 +35,6 @@ function ImageGrid({ images }: { images: ImageResponse[] }) {
   if (!images || images.length === 0) {
     return <p className="text-base-content/60">No images to display.</p>;
   }
-
   return (
     <div className="flex flex-wrap gap-2 ">
       {images.map((image) => (
@@ -54,14 +54,12 @@ interface RenameModalProps {
 
 function RenameModal({ batchName, onSave, isPending, isOpen, onClose }: RenameModalProps) {
   const [name, setName] = useState(batchName);
-
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (name.trim()) {
       onSave(name.trim());
     }
   };
-
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <ModalContent>
@@ -144,7 +142,6 @@ export default function BatchImagesPage() {
       acc[key].push(image);
       return acc;
     }, {} as Record<string, ImageResponse[]>);
-
     const unsortedEntries = Object.entries(clusters);
     unsortedEntries.sort(([, imagesA], [, imagesB]) => imagesB.length - imagesA.length);
     return unsortedEntries;
@@ -248,15 +245,7 @@ export default function BatchImagesPage() {
               </DropdownMenu>
             </Dropdown>
           </nav>
-          <Card className="py-4 w-64 flex-shrink-0">
-            <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
-              <p className="text-tiny uppercase font-bold">Batch Details</p>
-              <h4 className="font-bold text-large">{batch.batch_name}</h4>
-              <small className="text-default-500">{allImages.length} images</small>
-            </CardHeader>
-            <CardBody className="overflow-visible py-2">
-            </CardBody>
-          </Card>
+          <ClusteringToolbox batchId={batchId} />
         </div>
 
         <div className="flex-grow">
