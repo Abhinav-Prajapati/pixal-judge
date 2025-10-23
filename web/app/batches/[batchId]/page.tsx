@@ -7,7 +7,7 @@ import type { ImageResponse } from '@/client/types.gen';
 import { getBatchOptions, renameBatchMutation, deleteBatchMutation } from '@/client/@tanstack/react-query.gen';
 import { client } from '@/client/client.gen';
 import { ImageCard } from '@/components/ui/ImageCard';
-import { ClusteringToolbox } from '@/components/ui/ClusteringToolbox'; // Adjust path as needed
+import { ClusteringToolbox } from '@/components/ui/ClusteringToolbox';
 import { Card, CardBody, CardHeader } from '@heroui/card';
 import {
   Dropdown,
