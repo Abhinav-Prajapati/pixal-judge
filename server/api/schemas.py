@@ -11,8 +11,8 @@ class ImageResponse(BaseModel):
     original_filename: str
     file_path: str
     has_thumbnail: bool
-    is_duplicate: bool = False  
-    message: str | None = None  
+    is_duplicate: bool = False
+    message: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
 class GroupAssociationResponse(BaseModel):
@@ -31,9 +31,9 @@ class BatchRename(BaseModel):
     name: str
 
 class BatchAnalyze(BaseModel):
-    """Schema for the analysis request."""
-    eps: float = 0.3
-    min_samples: int = 2
+    """Schema for the analysis request using HDBSCAN parameters."""
+    min_cluster_size: int = 5
+    min_samples: int = 5
     metric: str = 'cosine'
 
 class BatchUpdateImages(BaseModel):

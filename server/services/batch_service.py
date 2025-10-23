@@ -90,7 +90,13 @@ def analyze_batch(db: Session, batch_id: int, params: BatchAnalyze) -> ImageBatc
     crud_batch.update(db, db_obj=batch)
     
     features_matrix = np.array([img.features for img in batch.images])
-    grouper = ImageGrouper(eps=params.eps, min_samples=params.min_samples, metric=params.metric)
+    
+    # Use new HDBSCAN parameters
+    grouper = ImageGrouper(
+        min_cluster_size=params.min_cluster_size,
+        min_samples=params.min_samples,
+        metric=params.metric
+    )
     labels = grouper.fit_predict(features_matrix)
     
     # Create a mapping from numeric labels to descriptive names

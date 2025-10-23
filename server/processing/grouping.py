@@ -1,26 +1,32 @@
 """
-Contains the logic for clustering image features using DBSCAN.
+Contains the logic for clustering image features using HDBSCAN.
 This module is responsible for the core clustering algorithm.
 """
 import numpy as np
-from sklearn.cluster import DBSCAN
-from sklearn.preprocessing import StandardScaler
+import hdbscan
 from typing import Dict
 
 class ImageGrouper:
-    """Clusters image features using the DBSCAN algorithm."""
+    """Clusters image features using the HDBSCAN algorithm."""
 
-    def __init__(self, eps: float = 0.5, min_samples: int = 2, metric: str = 'cosine'):
-        """Initializes the DBSCAN model with specified parameters."""
-        self.dbscan = DBSCAN(eps=eps, min_samples=min_samples, metric=metric)
-        self.scaler = StandardScaler()
+    def __init__(self, min_cluster_size: int = 5, min_samples: int = 5, metric: str = 'cosine'):
+        """Initializes the HDBSCAN model with specified parameters."""
+        self.clusterer = hdbscan.HDBSCAN(
+            min_cluster_size=min_cluster_size,
+            min_samples=min_samples,
+            metric=metric,
+            allow_single_cluster=True,
+            algorithm='generic'
+        )
         self.labels_ = None
 
     def fit_predict(self, features: np.ndarray) -> np.ndarray:
-        """Fits the DBSCAN model to the features and returns cluster labels."""
-        print(f"Clustering {features.shape[0]} images with DBSCAN...")
-        features_scaled = self.scaler.fit_transform(features) if self.dbscan.metric == 'euclidean' else features
-        self.labels_ = self.dbscan.fit_predict(features_scaled)
+        """Fits the HDBSCAN model to the features and returns cluster labels."""
+        print(f"Clustering {features.shape[0]} images with HDBSCAN...")
+        # HDBSCAN is generally less sensitive to scaling, especially with cosine metric.
+        # Removed the StandardScaler for simplicity.
+        features_64 = features.astype(np.float64)
+        self.labels_ = self.clusterer.fit_predict(features_64)
         return self.labels_
 
     def get_cluster_stats(self) -> Dict:
