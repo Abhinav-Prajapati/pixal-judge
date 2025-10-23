@@ -3,6 +3,5 @@
 *jpg
 *.JPG
 *jpeg
-*txt
 .venv
 __pycache__

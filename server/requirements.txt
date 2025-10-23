@@ -1,0 +1,24 @@
+# Web Framework & Server
+fastapi
+uvicorn[standard]
+python-multipart
+
+# Database ORM
+SQLAlchemy
+
+# Machine Learning & CV
+torch
+torchvision
+scikit-learn
+
+# Data & Image Handling
+numpy
+Pillow
+
+# Environment Management
+psycopg2-binary
+alembic
+python-dotenv
+hdbscan
+matplotlib 
+umap-learn
