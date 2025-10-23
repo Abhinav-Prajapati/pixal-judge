@@ -2,15 +2,15 @@
 
 export const BatchAnalyzeSchema = {
   properties: {
-    eps: {
-      type: "number",
-      title: "Eps",
-      default: 0.3,
+    min_cluster_size: {
+      type: "integer",
+      title: "Min Cluster Size",
+      default: 5,
     },
     min_samples: {
       type: "integer",
       title: "Min Samples",
-      default: 2,
+      default: 5,
     },
     metric: {
       type: "string",
@@ -20,7 +20,7 @@ export const BatchAnalyzeSchema = {
   },
   type: "object",
   title: "BatchAnalyze",
-  description: "Schema for the analysis request.",
+  description: "Schema for the analysis request using HDBSCAN parameters.",
 } as const;
 
 export const BatchCreateSchema = {

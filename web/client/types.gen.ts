@@ -2,13 +2,13 @@
 
 /**
  * BatchAnalyze
- * Schema for the analysis request.
+ * Schema for the analysis request using HDBSCAN parameters.
  */
 export type BatchAnalyze = {
   /**
-   * Eps
+   * Min Cluster Size
    */
-  eps?: number;
+  min_cluster_size?: number;
   /**
    * Min Samples
    */
