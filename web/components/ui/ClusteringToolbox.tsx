@@ -9,7 +9,6 @@ import {
 } from '@/client/@tanstack/react-query.gen';
 import {
   Slider,
-  NumberInput,
   Button,
 } from "@heroui/react";
 import { Card, CardBody } from '@heroui/card';
@@ -22,8 +21,8 @@ interface ClusteringToolboxProps {
 
 export function ClusteringToolbox({ batchId }: ClusteringToolboxProps) {
   const queryClient = useQueryClient();
-  const [sensitivity, setSensitivity] = useState(0.4);
-  const [minImages, setMinImages] = useState(1);
+  const [minClusterSize, setMinClusterSize] = useState(5);
+  const [minSamples, setMinSamples] = useState(5);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const clusterMutation = useMutation({
@@ -34,8 +33,16 @@ export function ClusteringToolbox({ batchId }: ClusteringToolboxProps) {
         queryKey: getBatchQueryKey({ path: { batch_id: batchId } }),
       });
     },
-    onError: (error) => {
-      toast.error(`Clustering failed: ${error.detail}`);
+    onError: (error: any) => {
+      let errorMessage = 'An unknown error occurred';
+      if (error && typeof error === 'object') {
+        if ('detail' in error && Array.isArray(error.detail) && error.detail.length > 0) {
+          errorMessage = error.detail[0].msg;
+        } else if ('message' in error) {
+          errorMessage = error.message;
+        }
+      }
+      toast.error(`Clustering failed: ${errorMessage}`);
     },
   });
 
@@ -50,8 +57,16 @@ export function ClusteringToolbox({ batchId }: ClusteringToolboxProps) {
         fileInputRef.current.value = '';
       }
     },
-    onError: (error) => {
-      toast.error(`Upload failed: ${error.detail}`);
+    onError: (error: any) => {
+      let errorMessage = 'An unknown error occurred';
+      if (error && typeof error === 'object') {
+        if ('detail' in error && Array.isArray(error.detail) && error.detail.length > 0) {
+          errorMessage = error.detail[0].msg;
+        } else if ('message' in error) {
+          errorMessage = error.message;
+        }
+      }
+      toast.error(`Upload failed: ${errorMessage}`);
     },
   });
 
@@ -59,8 +74,9 @@ export function ClusteringToolbox({ batchId }: ClusteringToolboxProps) {
     clusterMutation.mutate({
       path: { batch_id: batchId },
       body: {
-        eps: sensitivity,
-        min_samples: minImages,
+        min_cluster_size: minClusterSize,
+        min_samples: minSamples,
+        metric: "cosine",
       },
     });
   };
@@ -87,7 +103,6 @@ export function ClusteringToolbox({ batchId }: ClusteringToolboxProps) {
     <Card>
       <CardBody>
         <div className="flex flex-col gap-4">
-          {/* File input (hidden) */}
           <input
             type="file"
             multiple
@@ -98,7 +113,6 @@ export function ClusteringToolbox({ batchId }: ClusteringToolboxProps) {
             disabled={isBusy}
           />
 
-          {/* Upload Button */}
           <Button
             color="primary"
             variant="solid"
@@ -110,29 +124,30 @@ export function ClusteringToolbox({ batchId }: ClusteringToolboxProps) {
             {uploadMutation.isPending ? 'Uploading...' : 'Upload & Add Images'}
           </Button>
 
-          {/* Separator */}
           <div className="border-b border-default-200 my-2" />
 
-          {/* Clustering Controls */}
-          <h3 className="text-base font-semibold text-default-700">Tune Cluster</h3>
+          <h3 className="text-base font-semibold text-default-700">Tune Cluster (HDBSCAN)</h3>
+
           <Slider
-            label="Cluster sensitivity"
-            value={sensitivity}
-            onChange={(value) => setSensitivity(value as number)}
-            maxValue={1}
-            minValue={0}
-            step={0.02}
-            isDisabled={isBusy}
-          />
-          <NumberInput
-            size='sm'
-            variant="bordered"
-            label="Min images per cluster"
-            value={minImages}
-            onValueChange={setMinImages}
+            label={`Min Cluster Size: ${minClusterSize}`}
+            value={minClusterSize}
+            onChange={(value) => setMinClusterSize(value as number)}
+            maxValue={50}
             minValue={1}
+            step={1}
             isDisabled={isBusy}
           />
+
+          <Slider
+            label={`Min Samples: ${minSamples}`}
+            value={minSamples}
+            onChange={(value) => setMinSamples(value as number)}
+            maxValue={50}
+            minValue={1}
+            step={1}
+            isDisabled={isBusy}
+          />
+
           <Button
             color="primary"
             variant="bordered"
