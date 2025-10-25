@@ -1,32 +1,18 @@
 'use client';
 
-import React, { useMemo, useState, FormEvent } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useMemo } from 'react';
+import { useParams } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import type { ImageResponse } from '@/client/types.gen';
-import { getBatchOptions, renameBatchMutation, deleteBatchMutation } from '@/client/@tanstack/react-query.gen';
+import { getBatchOptions } from '@/client/@tanstack/react-query.gen';
 import { client } from '@/client/client.gen';
 import { ImageCard } from '@/components/ui/ImageCard';
 import { ClusteringToolbox } from '@/components/ui/ClusteringToolbox';
-import { Card, CardBody, CardHeader } from '@heroui/card';
+import { Card } from '@heroui/card';
 import {
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
-  Button,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Input,
-  useDisclosure,
   Tabs,
   Tab,
 } from "@heroui/react";
-import { ArrowLeft, ChevronDown } from 'lucide-react';
-import toast from 'react-hot-toast';
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 client.setConfig({ baseUrl: API_BASE_URL });
@@ -44,84 +30,9 @@ function ImageGrid({ images }: { images: ImageResponse[] }) {
   );
 }
 
-interface RenameModalProps {
-  batchName: string;
-  onSave: (newName: string) => void;
-  isPending: boolean;
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-function RenameModal({ batchName, onSave, isPending, isOpen, onClose }: RenameModalProps) {
-  const [name, setName] = useState(batchName);
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    if (name.trim()) {
-      onSave(name.trim());
-    }
-  };
-  return (
-    <Modal isOpen={isOpen} onClose={onClose}>
-      <ModalContent>
-        <ModalHeader>Rename Batch</ModalHeader>
-        <form onSubmit={handleSubmit}>
-          <ModalBody>
-            <Input
-              type="text"
-              label="Batch Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoFocus
-              disabled={isPending}
-            />
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="light" onPress={onClose} disabled={isPending}>Cancel</Button>
-            <Button color="primary" type="submit" isLoading={isPending} disabled={!name?.trim()}>
-              {isPending ? "Saving..." : "Save"}
-            </Button>
-          </ModalFooter>
-        </form>
-      </ModalContent>
-    </Modal>
-  );
-}
-
-interface DeleteModalProps {
-  batchName: string;
-  onDelete: () => void;
-  isPending: boolean;
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-function DeleteModal({ batchName, onDelete, isPending, isOpen, onClose }: DeleteModalProps) {
-  return (
-    <Modal isOpen={isOpen} onClose={onClose}>
-      <ModalContent>
-        <ModalHeader>Delete Batch</ModalHeader>
-        <ModalBody>
-          <p>Are you sure you want to delete <strong>{batchName}</strong>? This action cannot be undone.</p>
-        </ModalBody>
-        <ModalFooter>
-          <Button variant="light" onPress={onClose} disabled={isPending}>Cancel</Button>
-          <Button color="danger" onPress={onDelete} isLoading={isPending}>
-            {isPending ? "Deleting..." : "Delete"}
-          </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
-  );
-}
-
 export default function BatchImagesPage() {
   const params = useParams();
-  const router = useRouter();
-  const queryClient = useQueryClient();
   const batchId = Number(params.batchId);
-
-  const { isOpen: isRenameOpen, onOpen: onRenameOpen, onClose: onRenameClose } = useDisclosure();
-  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
 
   const { data: batch, isLoading, isError, error } = useQuery({
     ...getBatchOptions({ path: { batch_id: batchId } }),
@@ -146,43 +57,6 @@ export default function BatchImagesPage() {
     unsortedEntries.sort(([, imagesA], [, imagesB]) => imagesB.length - imagesA.length);
     return unsortedEntries;
   }, [batch]);
-
-  const renameMutation = useMutation({
-    ...renameBatchMutation(),
-    onSuccess: (data) => {
-      queryClient.setQueryData(['getBatch', { path: { batch_id: batchId } }], data);
-      toast.success("Batch renamed successfully!");
-      onRenameClose();
-    },
-    onError: () => {
-      toast.error("Failed to rename batch.");
-    },
-  });
-
-  const deleteMutation = useMutation({
-    ...deleteBatchMutation(),
-    onSuccess: () => {
-      toast.success("Batch deleted successfully!");
-      queryClient.invalidateQueries({ queryKey: ['getAllBatches'] });
-      router.push('/batches');
-    },
-    onError: () => {
-      toast.error("Failed to delete batch.");
-    },
-  });
-
-  const handleRenameConfirm = (newName: string) => {
-    renameMutation.mutate({
-      path: { batch_id: batchId },
-      body: { name: newName },
-    });
-  };
-
-  const handleDeleteConfirm = () => {
-    deleteMutation.mutate({
-      path: { batch_id: batchId },
-    });
-  };
 
   if (isNaN(batchId)) {
     return (
@@ -221,34 +95,14 @@ export default function BatchImagesPage() {
 
   return (
     <>
-      <div className="flex flex-row gap-4 h-full w-full p-4 overflow-hidden">
-        <div className="flex flex-col gap-4 w-64 flex-shrink-0">
-          <nav className="flex flex-shrink-0 items-center gap-2">
-            <Button size="md" isIconOnly onPress={() => router.back()} >
-              <ArrowLeft />
-            </Button>
-            <Dropdown>
-              <DropdownTrigger>
-                <Button variant="bordered">{batch.batch_name} <ChevronDown size={18} /> </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                aria-label="Batch Actions"
-                onAction={(key) => {
-                  if (key === 'rename') onRenameOpen();
-                  if (key === 'delete') onDeleteOpen();
-                }}
-              >
-                <DropdownItem key="rename">Rename</DropdownItem>
-                <DropdownItem key="delete" className="text-danger" color="danger">
-                  Delete Batch
-                </DropdownItem>
-              </DropdownMenu>
-            </Dropdown>
-          </nav>
+      <div className="flex flex-row gap-4 h-full w-full overflow-hidden">
+        {/* Sidebar */}
+        <div className="flex flex-col gap-4 w-64 flex-shrink-0 border">
           <ClusteringToolbox batchId={batchId} />
         </div>
 
-        <div className="flex-grow">
+        {/* Image Grid */}
+        <div className="flex-grow border">
           <Tabs aria-label="Image views " >
             <Tab key="all" title={`All Images (${allImages.length})`}>
               <Card className='p-4 overflow-y-auto h-[87vh]'>
@@ -273,21 +127,6 @@ export default function BatchImagesPage() {
           </Tabs>
         </div>
       </div>
-
-      <RenameModal
-        batchName={batch.batch_name}
-        onSave={handleRenameConfirm}
-        isPending={renameMutation.isPending}
-        isOpen={isRenameOpen}
-        onClose={onRenameClose}
-      />
-      <DeleteModal
-        batchName={batch.batch_name}
-        onDelete={handleDeleteConfirm}
-        isPending={deleteMutation.isPending}
-        isOpen={isDeleteOpen}
-        onClose={onDeleteClose}
-      />
     </>
   );
 }
