@@ -295,9 +295,8 @@ export function ClusteringToolbox({ batchId }: ClusteringToolboxProps) {
             {clusterMutation.isPending ? 'Analyzing...' : 'Analyze'}
           </Button>
         </div>
-      </CardBody>
-      <CardBody className="border-t border-default-200/50 py-3">
-        <div className="flex gap-2 justify-end">
+
+        <div className="flex gap-2 justify-end bottom-0 absolute py-2">
           <Button size="md" variant="light" onPress={onRenameOpen} disabled={isBusy} startContent={<Pencil size={18} />}>
             Rename
           </Button>
