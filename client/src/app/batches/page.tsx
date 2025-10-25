@@ -68,10 +68,6 @@ function CreateBatchModal({ modalId }: { modalId: string; }) {
       setError("Please provide a batch name.");
       return;
     }
-    if (selectedImageIds.size === 0) {
-      setError("Please select at least one image.");
-      return;
-    }
     setError(null);
 
     createBatch.mutate({

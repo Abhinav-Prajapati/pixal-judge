@@ -61,7 +61,6 @@ function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps) {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!projectName.trim()) return setError("Please provide a project name.");
-    if (selectedImageIds.size === 0) return setError("Please select at least one image.");
     setError(null);
 
     createProject.mutate({
