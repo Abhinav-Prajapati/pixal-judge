@@ -3,6 +3,12 @@ from sqlalchemy.orm import Session
 from fastapi import UploadFile
 from typing import List, Dict, Union
 
+import os
+from datetime import datetime
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D 
+import umap
+
 from crud import crud_batch, crud_image
 from database.models import ImageBatch, Image
 from processing.grouping import ImageGrouper
@@ -14,6 +20,62 @@ class BatchServiceError(Exception):
         self.message = message
         self.status_code = status_code
         super().__init__(self.message)
+
+def _save_cluster_plot(features: np.ndarray, labels: np.ndarray, batch_id: int, metric: str = 'cosine'):
+    """
+    TEST FUNCTION: Reduces features to 3D using UMAP and saves a 3D scatter plot.
+    """
+    try:
+        save_dir = "cluster_plots"
+        os.makedirs(save_dir, exist_ok=True)
+        
+        print(f"DEBUG: Reducing {features.shape[0]} features to 3D using UMAP...")
+        reducer = umap.UMAP(
+            n_components=3,
+            n_neighbors=15,
+            min_dist=0.1,  
+            metric=metric, 
+            random_state=42
+        )
+        data_3d = reducer.fit_transform(features)
+        
+        fig = plt.figure(figsize=(12, 10))
+        ax = fig.add_subplot(111, projection='3d')
+
+        noise_mask = (labels == -1)
+        core_mask = ~noise_mask
+
+        if core_mask.any():
+            ax.scatter(
+                data_3d[core_mask, 0], data_3d[core_mask, 1], data_3d[core_mask, 2],
+                c=labels[core_mask], cmap='viridis', s=40, alpha=0.8
+            )
+
+        if noise_mask.any():
+            ax.scatter(
+                data_3d[noise_mask, 0], data_3d[noise_mask, 1], data_3d[noise_mask, 2],
+                c='grey', s=10, alpha=0.2, label='Ungrouped (-1)'
+            )
+
+        ax.set_title(f'3D UMAP Cluster Plot for Batch {batch_id}')
+        ax.set_xlabel('UMAP Component 1')
+        ax.set_ylabel('UMAP Component 2')
+        ax.set_zlabel('UMAP Component 3')
+        if noise_mask.any():
+            ax.legend()
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"batch_{batch_id}_cluster_plot_{timestamp}.png"
+        save_path = os.path.join(save_dir, filename)
+        
+        plt.savefig(save_path)
+        plt.close(fig) 
+        print(f"DEBUG: Saved 3D cluster plot to {save_path}")
+
+    except ImportError:
+        print("WARNING: `umap-learn` or `matplotlib` not installed. Skipping 3D plot.")
+    except Exception as e:
+        print(f"WARNING: Failed to generate or save 3D plot: {e}")
 
 def get_batch_or_fail(db: Session, batch_id: int) -> ImageBatch:
     batch = crud_batch.get(db, batch_id=batch_id)
@@ -98,6 +160,8 @@ def analyze_batch(db: Session, batch_id: int, params: BatchAnalyze) -> ImageBatc
         metric=params.metric
     )
     labels = grouper.fit_predict(features_matrix)
+    _save_cluster_plot(features_matrix, labels, batch.id, metric=params.metric)
+
     
     # Create a mapping from numeric labels to descriptive names
     unique_cluster_labels = sorted([label for label in np.unique(labels) if label != -1])
