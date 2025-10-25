@@ -13,10 +13,6 @@ import {
 import {
   Slider,
   Button,
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
   useDisclosure,
   Modal,
   ModalContent,
@@ -27,7 +23,7 @@ import {
 } from "@heroui/react";
 import { Card, CardBody } from '@heroui/card';
 import toast from 'react-hot-toast';
-import { ArrowLeft, ChevronDown, UploadCloud } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Pencil, Trash2, UploadCloud } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface ClusteringToolboxProps {
@@ -233,31 +229,17 @@ export function ClusteringToolbox({ batchId }: ClusteringToolboxProps) {
   const isBusy = clusterMutation.isPending || uploadMutation.isPending || renameMutation.isPending || deleteMutation.isPending;
 
   return (
-    <Card>
+    <Card className='h-full' radius='none'>
       <CardBody>
         <div className="flex flex-col gap-4">
-          <nav className="flex flex-shrink-0 items-center gap-2 border">
-            <Button size="md" isIconOnly onPress={() => router.back()} >
+          <div className="flex flex-shrink-0 items-center gap-2">
+            <Button size="md" variant="light" isIconOnly onPress={() => router.back()} >
               <ArrowLeft />
             </Button>
-            <Dropdown>
-              <DropdownTrigger>
-                <Button variant="bordered">{batch?.batch_name} <ChevronDown size={18} /> </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                aria-label="Batch Actions"
-                onAction={(key) => {
-                  if (key === 'rename') onRenameOpen();
-                  if (key === 'delete') onDeleteOpen();
-                }}
-              >
-                <DropdownItem key="rename">Rename</DropdownItem>
-                <DropdownItem key="delete" className="text-danger" color="danger">
-                  Delete Batch
-                </DropdownItem>
-              </DropdownMenu>
-            </Dropdown>
-          </nav>
+            <h2 className="flex-grow px-3 text-base font-semibold text-default-700">
+              {batch?.batch_name}
+            </h2>
+          </div>
           <input
             type="file"
             multiple
@@ -311,6 +293,12 @@ export function ClusteringToolbox({ batchId }: ClusteringToolboxProps) {
             isDisabled={isBusy}
           >
             {clusterMutation.isPending ? 'Analyzing...' : 'Analyze'}
+          </Button>
+          <Button size="md" isIconOnly variant="light" onPress={onRenameOpen} disabled={isBusy}>
+            <Pencil size={18} />
+          </Button>
+          <Button size="md" isIconOnly variant="light" color="danger" onPress={onDeleteOpen} disabled={isBusy}>
+            <Trash2 size={18} />
           </Button>
         </div>
       </CardBody>

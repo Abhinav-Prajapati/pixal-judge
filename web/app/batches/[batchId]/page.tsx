@@ -97,7 +97,7 @@ export default function BatchImagesPage() {
     <>
       <div className="flex flex-row gap-4 h-full w-full overflow-hidden">
         {/* Sidebar */}
-        <div className="flex flex-col gap-4 w-64 flex-shrink-0 border">
+        <div className="flex flex-col gap-4 w-64 h-screen flex-shrink-0">
           <ClusteringToolbox batchId={batchId} />
         </div>
 
