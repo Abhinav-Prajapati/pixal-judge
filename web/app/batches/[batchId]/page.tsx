@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import type { ImageResponse } from '@/client/types.gen';
@@ -9,10 +9,8 @@ import { client } from '@/client/client.gen';
 import { ImageCard } from '@/components/ui/ImageCard';
 import { ClusteringToolbox } from '@/components/ui/ClusteringToolbox';
 import { Card } from '@heroui/card';
-import {
-  Tabs,
-  Tab,
-} from "@heroui/react";
+import { Button, ButtonGroup } from "@heroui/react";
+import { Grid, LayoutGrid } from 'lucide-react';
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 client.setConfig({ baseUrl: API_BASE_URL });
@@ -33,6 +31,7 @@ function ImageGrid({ images }: { images: ImageResponse[] }) {
 export default function BatchImagesPage() {
   const params = useParams();
   const batchId = Number(params.batchId);
+  const [view, setView] = useState<'all' | 'grouped'>('all');
 
   const { data: batch, isLoading, isError, error } = useQuery({
     ...getBatchOptions({ path: { batch_id: batchId } }),
@@ -95,23 +94,46 @@ export default function BatchImagesPage() {
 
   return (
     <>
-      <div className="flex flex-row gap-4 h-full w-full overflow-hidden">
+      <div className="flex flex-row gap-4 h-screen w-full overflow-hidden">
         {/* Sidebar */}
-        <div className="flex flex-col gap-4 w-64 h-screen flex-shrink-0">
+        <div className="flex flex-col gap-4 w-64 h-full flex-shrink-0">
           <ClusteringToolbox batchId={batchId} />
         </div>
 
-        {/* Image Grid */}
-        <div className="flex-grow border">
-          <Tabs aria-label="Image views " >
-            <Tab key="all" title={`All Images (${allImages.length})`}>
-              <Card className='p-4 overflow-y-auto h-[87vh]'>
+        {/* Image Grid Area */}
+        <div className="flex flex-col flex-grow border h-full overflow-hidden">
+          {/* View Switcher Nav */}
+          <nav className="flex flex-shrink-0 items-center gap-2 p-2 border-b">
+            <ButtonGroup>
+              <Button
+                variant={view === 'all' ? 'solid' : 'bordered'}
+                color="primary"
+                onPress={() => setView('all')}
+                startContent={<Grid size={18} />}
+              >
+                All Images ({allImages.length})
+              </Button>
+              <Button
+                variant={view === 'grouped' ? 'solid' : 'bordered'}
+                color="primary"
+                onPress={() => setView('grouped')}
+                startContent={<LayoutGrid size={18} />}
+              >
+                Grouped View
+              </Button>
+            </ButtonGroup>
+          </nav>
+
+          {/* Scrollable Content Area */}
+          <div className="flex-grow overflow-y-auto">
+            {view === 'all' && (
+              <Card className='p-4'>
                 <ImageGrid images={allImages} />
               </Card>
-            </Tab>
-            <Tab key="grouped" title="Grouped View">
+            )}
+            {view === 'grouped' && (
               <Card>
-                <div className="flex flex-col gap-6 p-4 overflow-y-auto h-[87vh]">
+                <div className="flex flex-col gap-6 p-4">
                   {clusterEntries.map(([clusterId, images]) => (
                     <section key={clusterId}>
                       <h2 className="mb-3 text-lg font-bold">
@@ -123,8 +145,8 @@ export default function BatchImagesPage() {
                   ))}
                 </div>
               </Card>
-            </Tab>
-          </Tabs>
+            )}
+          </div>
         </div>
       </div>
     </>
