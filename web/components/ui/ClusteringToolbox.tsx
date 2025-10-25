@@ -229,8 +229,8 @@ export function ClusteringToolbox({ batchId }: ClusteringToolboxProps) {
   const isBusy = clusterMutation.isPending || uploadMutation.isPending || renameMutation.isPending || deleteMutation.isPending;
 
   return (
-    <Card className='h-full' radius='none'>
-      <CardBody>
+    <Card className='h-full flex flex-col' radius='none'>
+      <CardBody className="flex-grow overflow-y-auto">
         <div className="flex flex-col gap-4">
           <div className="flex flex-shrink-0 items-center gap-2">
             <Button size="md" variant="light" isIconOnly onPress={() => router.back()} >
@@ -261,7 +261,7 @@ export function ClusteringToolbox({ batchId }: ClusteringToolboxProps) {
             {uploadMutation.isPending ? 'Uploading...' : 'Upload & Add Images'}
           </Button>
 
-          <div className="border-b border-default-200 my-2" />
+          <div className="border-b border-default-200" />
 
           <h3 className="text-base font-semibold text-default-700">Tune Cluster (HDBSCAN)</h3>
 
@@ -294,11 +294,15 @@ export function ClusteringToolbox({ batchId }: ClusteringToolboxProps) {
           >
             {clusterMutation.isPending ? 'Analyzing...' : 'Analyze'}
           </Button>
-          <Button size="md" isIconOnly variant="light" onPress={onRenameOpen} disabled={isBusy}>
-            <Pencil size={18} />
+        </div>
+      </CardBody>
+      <CardBody className="border-t border-default-200/50 py-3">
+        <div className="flex gap-2 justify-end">
+          <Button size="md" variant="light" onPress={onRenameOpen} disabled={isBusy} startContent={<Pencil size={18} />}>
+            Rename
           </Button>
-          <Button size="md" isIconOnly variant="light" color="danger" onPress={onDeleteOpen} disabled={isBusy}>
-            <Trash2 size={18} />
+          <Button size="md" variant="light" color="danger" onPress={onDeleteOpen} disabled={isBusy} startContent={<Trash2 size={18} />}>
+            Delete
           </Button>
         </div>
       </CardBody>
