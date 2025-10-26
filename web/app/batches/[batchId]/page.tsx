@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import type { ImageResponse } from '@/client/types.gen';
+import type { GetImageMetadataError, ImageResponse, Metadata } from '@/client/types.gen';
 import { getBatchOptions } from '@/client/@tanstack/react-query.gen';
 import { client } from '@/client/client.gen';
 import { ImageCard } from '@/components/ui/ImageCard';
@@ -12,19 +12,20 @@ import { Card } from '@heroui/card';
 import { Button, ButtonGroup } from "@heroui/react";
 import { Grid, LayoutGrid, X } from 'lucide-react'; // Import X for close icon
 import { siteConfig } from '@/config/site';
+import { getImageMetadata } from '@/client';
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 client.setConfig({ baseUrl: API_BASE_URL });
 
 // -----------------------------------------------------------------
-// 1. UPDATED ImageGrid Component
+// 1. ImageGrid Component
 // -----------------------------------------------------------------
 /**
  * Accepts an onImageClick prop to make images selectable.
  */
 function ImageGrid({ images, onImageClick }: {
   images: ImageResponse[];
-  onImageClick: (image: ImageResponse) => void; // <-- New prop
+  onImageClick: (image: ImageResponse) => void;
 }) {
   if (!images || images.length === 0) {
     return <p className="text-base-content/60">No images to display.</p>;
@@ -46,17 +47,44 @@ function ImageGrid({ images, onImageClick }: {
 }
 
 // -----------------------------------------------------------------
-// 2. NEW ImageDetailPanel Component
+// 2. ImageDetailPanel Component (Corrected)
 // -----------------------------------------------------------------
 /**
  * A new sticky panel to display selected image details.
  */
-function ImageDetailPanel({ image, onClose }: {
+
+function ImageDetailPanel({
+  image,
+  onClose,
+}: {
   image: ImageResponse;
   onClose: () => void;
 }) {
-
   const imageUrl = siteConfig.urls.image(image.id);
+
+  // --- FETCH METADATA ---
+  const {
+    data: metadata,
+    isLoading,
+    isError,
+  } = useQuery<Metadata, GetImageMetadataError>({
+    queryKey: ["imageMetadata", image.id],
+
+    // --- THIS IS THE FIX ---
+    // Use an async function to 'await' the result,
+    // and then return *only* the 'data' property.
+    queryFn: async () => {
+      const response = await getImageMetadata({
+        path: { image_id: image.id },
+        throwOnError: true,
+      });
+      return response.data; // <-- Return the data, not the whole response
+    },
+    // ---
+
+    enabled: !!image.id,
+  });
+  // ---
 
   return (
     // Panel container
@@ -88,10 +116,26 @@ function ImageDetailPanel({ image, onClose }: {
 
         {/* Information at bottom */}
         <div className="p-4">
-          <h3 className="font-semibold mb-2 text-default-800">Information</h3>
+          <h3 className="font-semibold mb-2 text-default-800">
+            Base Information
+          </h3>
           <pre className="text-xs bg-default-100 p-3 rounded-md overflow-x-auto text-default-700">
             {JSON.stringify(image, null, 2)}
           </pre>
+
+          {/* --- DISPLAY METADATA --- */}
+          <h3 className="font-semibold mt-4 mb-2 text-default-800">
+            Detailed Metadata
+          </h3>
+          <div className="text-xs bg-default-100 p-3 rounded-md overflow-x-auto text-default-700">
+            {isLoading && <p>Loading metadata...</p>}
+            {isError && <p className="text-danger">Failed to load metadata.</p>}
+            {metadata && (
+              // You can format this better, but <pre> works for now
+              <pre>{JSON.stringify(metadata, null, 2)}</pre>
+            )}
+          </div>
+          {/* --- */}
         </div>
       </div>
     </div>
