@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import type { ImageResponse } from '@/client/types.gen';
@@ -10,28 +10,115 @@ import { ImageCard } from '@/components/ui/ImageCard';
 import { ClusteringToolbox } from '@/components/ui/ClusteringToolbox';
 import { Card } from '@heroui/card';
 import { Button, ButtonGroup } from "@heroui/react";
-import { Grid, LayoutGrid } from 'lucide-react';
+import { Grid, LayoutGrid, X } from 'lucide-react'; // Import X for close icon
+import { siteConfig } from '@/config/site';
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 client.setConfig({ baseUrl: API_BASE_URL });
 
-function ImageGrid({ images }: { images: ImageResponse[] }) {
+// -----------------------------------------------------------------
+// 1. UPDATED ImageGrid Component
+// -----------------------------------------------------------------
+/**
+ * Accepts an onImageClick prop to make images selectable.
+ */
+function ImageGrid({ images, onImageClick }: {
+  images: ImageResponse[];
+  onImageClick: (image: ImageResponse) => void; // <-- New prop
+}) {
   if (!images || images.length === 0) {
     return <p className="text-base-content/60">No images to display.</p>;
   }
   return (
     <div className="flex flex-wrap gap-2 ">
       {images.map((image) => (
-        <ImageCard key={image.id} image={image} />
+        // Wrap ImageCard in a clickable div
+        <div
+          key={image.id}
+          onClick={() => onImageClick(image)} // <-- Call handler on click
+          className="cursor-pointer transition-transform duration-150 ease-in-out hover:scale-[1.02]"
+        >
+          <ImageCard image={image} />
+        </div>
       ))}
     </div>
   );
 }
 
+// -----------------------------------------------------------------
+// 2. NEW ImageDetailPanel Component
+// -----------------------------------------------------------------
+/**
+ * A new sticky panel to display selected image details.
+ */
+function ImageDetailPanel({ image, onClose }: {
+  image: ImageResponse;
+  onClose: () => void;
+}) {
+
+  const imageUrl = siteConfig.urls.image(image.id);
+
+  return (
+    // Panel container
+    <div className="flex flex-col w-98 flex-shrink-0 h-screen sticky top-0 border-l border-default-200 bg-content1">
+      {/* Panel Header */}
+      <div className="flex flex-shrink-0 items-center justify-between p-2 border-b border-default-200">
+        <h2 className="text-lg font-semibold">{image.original_filename}</h2>
+        <Button
+          variant="light"
+          color="default"
+          onPress={onClose}
+          isIconOnly
+          aria-label="Close panel"
+        >
+          <X size={20} />
+        </Button>
+      </div>
+
+      {/* Panel Content (Scrollable) */}
+      <div className="flex-grow overflow-y-auto">
+        {/* Image on top */}
+        <div className="bg-black p-4">
+          <img
+            src={imageUrl}
+            alt={image.filename}
+            className="w-full h-auto object-contain max-h-96"
+          />
+        </div>
+
+        {/* Information at bottom */}
+        <div className="p-4">
+          <h3 className="font-semibold mb-2 text-default-800">Information</h3>
+          <pre className="text-xs bg-default-100 p-3 rounded-md overflow-x-auto text-default-700">
+            {JSON.stringify(image, null, 2)}
+          </pre>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// -----------------------------------------------------------------
+// 3. UPDATED BatchImagesPage Component
+// -----------------------------------------------------------------
 export default function BatchImagesPage() {
   const params = useParams();
   const batchId = Number(params.batchId);
   const [view, setView] = useState<'all' | 'grouped'>('all');
+
+  // --- New state for selected image ---
+  const [selectedImage, setSelectedImage] = useState<ImageResponse | null>(null);
+
+  // --- New handlers for state ---
+  const handleImageClick = useCallback((image: ImageResponse) => {
+    setSelectedImage(image);
+  }, []);
+
+  const handleClosePanel = useCallback(() => {
+    setSelectedImage(null);
+  }, []);
+
 
   const { data: batch, isLoading, isError, error } = useQuery({
     ...getBatchOptions({ path: { batch_id: batchId } }),
@@ -57,6 +144,7 @@ export default function BatchImagesPage() {
     return unsortedEntries;
   }, [batch]);
 
+  // --- No changes to loading/error states ---
   if (isNaN(batchId)) {
     return (
       <div className="flex items-center justify-center h-full text-error">
@@ -64,7 +152,6 @@ export default function BatchImagesPage() {
       </div>
     );
   }
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -72,7 +159,6 @@ export default function BatchImagesPage() {
       </div>
     );
   }
-
   if (isError) {
     return (
       <div className="flex items-center justify-center h-full text-error">
@@ -80,7 +166,6 @@ export default function BatchImagesPage() {
       </div>
     );
   }
-
   if (!batch) {
     return (
       <div className="p-4">
@@ -92,6 +177,7 @@ export default function BatchImagesPage() {
     );
   }
 
+  // --- Updated Layout ---
   return (
     <>
       <div className="flex flex-row w-full">
@@ -100,8 +186,8 @@ export default function BatchImagesPage() {
           <ClusteringToolbox batchId={batchId} />
         </div>
 
-        {/* Image Grid Area */}
-        <div className="flex flex-col flex-grow">
+        {/* Image Grid Area (takes up remaining space) */}
+        <div className="flex flex-col flex-grow min-w-0"> {/* min-w-0 is important for flex-grow */}
           {/* View Switcher Nav */}
           <nav className="flex flex-shrink-0 items-center gap-2 p-2 bg-content1 border-b border-default-200 sticky top-0 z-10 justify-end">
             <ButtonGroup>
@@ -127,7 +213,10 @@ export default function BatchImagesPage() {
           {/* Page Content Area */}
           <div className="flex-grow p-4">
             {view === 'all' && (
-              <ImageGrid images={allImages} />
+              <ImageGrid
+                images={allImages}
+                onImageClick={handleImageClick} // <-- Pass handler
+              />
             )}
             {view === 'grouped' && (
               <div className="flex flex-col gap-6">
@@ -137,13 +226,24 @@ export default function BatchImagesPage() {
                       {clusterId}
                       <span className="ml-2 text-sm font-normal text-default-500">({images.length})</span>
                     </h2>
-                    <ImageGrid images={images} />
+                    <ImageGrid
+                      images={images}
+                      onImageClick={handleImageClick} // <-- Pass handler
+                    />
                   </section>
                 ))}
               </div>
             )}
           </div>
         </div>
+
+        {/* NEW: Conditionally render the detail panel */}
+        {selectedImage && (
+          <ImageDetailPanel
+            image={selectedImage}
+            onClose={handleClosePanel}
+          />
+        )}
       </div>
     </>
   );

@@ -9,5 +9,6 @@ export const siteConfig = {
     apiBase: apiBaseUrl,
     projectDetails: (id: number | string) => `/batches/${id}`, // Or `/projects/${id}`
     imageThumbnail: (id: number | string) => `${apiBaseUrl}/images/thumbnail/${id}`,
+    image: (id: number | string) => `${apiBaseUrl}/images/${id}`,
   }
 };
