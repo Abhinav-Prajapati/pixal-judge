@@ -4,8 +4,8 @@ A full-stack application for uploading, managing, and visually clustering large 
 
 ## Demo with images of various types
 <div align="center">
-  <img src="assets/Screenshot_20251027_021551.png" alt="Cluster Screenshot" width="45%">
-  <img src="assets/batch_18_cluster_plot_20251027_020508.png" alt="Cluster Plot" width="28%">
+  <img src="assets/Screenshot_20251027_021551.png" alt="Cluster Screenshot" width="65%">
+  <img src="assets/batch_18_cluster_plot_20251027_020508.png" alt="Cluster Plot" width="34%">
 </div>
 
 ## Core Features
