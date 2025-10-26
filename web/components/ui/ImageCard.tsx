@@ -7,7 +7,7 @@ import { Image as ImageIcon } from 'lucide-react';
 
 export function ImageCard({ image }: { image: ImageResponse }) {
   return (
-    <div className="flex flex-col aspect-square w-44 overflow-hidden bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
+    <div className="relative flex flex-col aspect-square w-44 overflow-hidden bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 group">
       {/* Image container that grows to fill available space */}
       <div className="relative flex-grow min-h-0">
         <Image
@@ -20,11 +20,14 @@ export function ImageCard({ image }: { image: ImageResponse }) {
       </div>
       {/* Filename container at the bottom */}
       <div className="w-full flex-shrink-0 px-1 py-1 border-t border-neutral-200 dark:border-neutral-700">
-        <p className="truncate text-center text-xs text-neutral-600 dark:text-neutral-400" title={image.original_filename}>
+        <p className="truncate text-center text-xs text-neutral-600 dark:text-neutral-400 transition-colors duration-200" title={image.original_filename}>
           <ImageIcon className='inline-block mr-1' size={16} />
           {image.original_filename}
         </p>
       </div>
+
+      {/* Full card overlay */}
+      <div className="absolute inset-0 bg-blue-500/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
     </div>
   );
 }
