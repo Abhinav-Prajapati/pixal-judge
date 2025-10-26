@@ -1,8 +1,9 @@
 """
 Defines Pydantic models for API request and response validation.
 """
+from datetime import datetime
 from pydantic import BaseModel, ConfigDict
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 class ImageResponse(BaseModel):
     """Schema for returning image details. This model is unchanged."""
@@ -52,3 +53,21 @@ class BatchResponse(BaseModel):
 class BatchGroupUpdate(BaseModel):
     """Schema for manually updating a batch's group map."""
     group_map: Dict[str, List[int]]
+
+class Metadata(BaseModel):
+    """Schema for detailed image metadata."""
+    width: Optional[int]
+    height: Optional[int]
+    orientation: Optional[int]
+    shot_at: Optional[datetime]
+    latitude: Optional[float]
+    longitude: Optional[float]
+    camera_make: Optional[str]
+    camera_model: Optional[str]
+    focal_length: Optional[str]
+    f_number: Optional[float]
+    exposure_time: Optional[str]
+    iso: Optional[int]
+    caption: Optional[str]
+    tags: Optional[Any] 
+    rating: Optional[int]

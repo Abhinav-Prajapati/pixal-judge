@@ -8,8 +8,8 @@ from pathlib import Path
 from database.database import get_db
 from services import image_service
 from crud import crud_image
-from .schemas import ImageResponse
-from .tasks import generate_thumbnail_task, generate_embedding_task, extract_metadata_task
+from .schemas import ImageResponse, Metadata
+from .tasks import generate_thumbnail_task, generate_embedding_task
 from database.models import Image as ImageModel
 from config import THUMB_DIR
 
@@ -75,3 +75,31 @@ def delete_image(image_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail=str(e))
     except IOError as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/metadata/{image_id}", response_model=Metadata, operation_id="getImageMetadata")
+def get_image_metadata(image_id: int, db: Session = Depends(get_db)):
+    
+    image = crud_image.get(db, image_id=image_id)
+
+    if not image:
+        raise HTTPException(status_code=404, detail="Image not found.")
+
+    metadata = Metadata(
+        width=image.width,
+        height=image.height,
+        orientation=image.orientation,
+        shot_at=image.shot_at,
+        latitude=image.latitude,
+        longitude=image.longitude,
+        camera_make=image.camera_make,
+        camera_model=image.camera_model,
+        focal_length=image.focal_length,
+        f_number=image.f_number,
+        exposure_time=image.exposure_time,
+        iso=image.iso,
+        caption=image.caption,
+        tags=image.tags,
+        rating=image.rating
+    )
+
+    return metadata
