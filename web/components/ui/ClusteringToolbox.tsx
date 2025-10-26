@@ -21,7 +21,6 @@ import {
   ModalFooter,
   Input,
 } from "@heroui/react";
-import { Card, CardBody } from '@heroui/card';
 import toast from 'react-hot-toast';
 import { ArrowLeft, ChevronDown, Pencil, Trash2, UploadCloud } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -34,7 +33,6 @@ export function ClusteringToolbox({ batchId }: ClusteringToolboxProps) {
   const queryClient = useQueryClient();
   const [minClusterSize, setMinClusterSize] = useState(5);
   const [minSamples, setMinSamples] = useState(5);
-  const [newBatchName, setNewBatchName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const router = useRouter();
@@ -229,17 +227,17 @@ export function ClusteringToolbox({ batchId }: ClusteringToolboxProps) {
   const isBusy = clusterMutation.isPending || uploadMutation.isPending || renameMutation.isPending || deleteMutation.isPending;
 
   return (
-    <Card className='h-full flex flex-col' radius='none'>
-      <CardBody className="flex-grow overflow-y-auto">
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-shrink-0 items-center gap-2">
-            <Button size="md" variant="light" isIconOnly onPress={() => router.back()} >
-              <ArrowLeft />
-            </Button>
-            <h2 className="flex-grow px-3 text-base font-semibold text-default-700">
-              {batch?.batch_name}
-            </h2>
-          </div>
+    <div className='h-full flex flex-col bg-content1'>
+      <div className="flex flex-shrink-0 items-center gap-2 p-2 border-b border-r border-default-200">
+        <Button size="md" variant="light" isIconOnly onPress={() => router.back()} >
+          <ArrowLeft />
+        </Button>
+        <h2 className="flex-grow px-3 text-base font-semibold text-default-700">
+          {batch?.batch_name}
+        </h2>
+      </div>
+      <div className="flex-grow overflow-y-auto p-2 pt-4 border-r border-default-200">
+        <div className="flex flex-col gap-4 ">
           <input
             type="file"
             multiple
@@ -249,21 +247,6 @@ export function ClusteringToolbox({ batchId }: ClusteringToolboxProps) {
             accept="image/*"
             disabled={isBusy}
           />
-
-          <Button
-            color="primary"
-            variant="solid"
-            onPress={handleUploadClick}
-            isLoading={uploadMutation.isPending}
-            isDisabled={isBusy}
-            startContent={<UploadCloud size={18} />}
-          >
-            {uploadMutation.isPending ? 'Uploading...' : 'Upload & Add Images'}
-          </Button>
-
-          <div className="border-b border-default-200" />
-
-          <h3 className="text-base font-semibold text-default-700">Tune Cluster (HDBSCAN)</h3>
 
           <Slider
             label={`Min Cluster Size: ${minClusterSize}`}
@@ -286,6 +269,7 @@ export function ClusteringToolbox({ batchId }: ClusteringToolboxProps) {
           />
 
           <Button
+            radius='none'
             color="primary"
             variant="bordered"
             onPress={handleCluster}
@@ -293,18 +277,42 @@ export function ClusteringToolbox({ batchId }: ClusteringToolboxProps) {
             isDisabled={isBusy}
           >
             {clusterMutation.isPending ? 'Analyzing...' : 'Analyze'}
+
+          </Button>
+
+          <Button
+            radius='none'
+            color="primary"
+            variant="solid"
+            onPress={handleUploadClick}
+            isLoading={uploadMutation.isPending}
+            isDisabled={isBusy}
+            startContent={<UploadCloud size={18} />}
+          >
+            {uploadMutation.isPending ? 'Uploading...' : 'Upload & Add Images'}
           </Button>
         </div>
 
         <div className="flex gap-2 justify-end bottom-0 absolute py-2">
-          <Button size="md" variant="light" onPress={onRenameOpen} disabled={isBusy} startContent={<Pencil size={18} />}>
+          <Button
+            size="md"
+            variant="light"
+            onPress={onRenameOpen}
+            disabled={isBusy}
+            startContent={<Pencil size={18} />}>
             Rename
           </Button>
-          <Button size="md" variant="light" color="danger" onPress={onDeleteOpen} disabled={isBusy} startContent={<Trash2 size={18} />}>
+          <Button
+            size="md"
+            variant="light"
+            color="danger"
+            onPress={onDeleteOpen}
+            disabled={isBusy}
+            startContent={<Trash2 size={18} />}>
             Delete
           </Button>
         </div>
-      </CardBody>
+      </div>
       <RenameModal
         batchName={batch?.batch_name || 'Untitled Batch'}
         onSave={handleRenameConfirm}
@@ -319,6 +327,6 @@ export function ClusteringToolbox({ batchId }: ClusteringToolboxProps) {
         isOpen={isDeleteOpen}
         onClose={onDeleteClose}
       />
-    </Card>
+    </div>
   );
 }

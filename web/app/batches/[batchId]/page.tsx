@@ -299,6 +299,7 @@ export default function BatchImagesPage() {
                 color="primary"
                 onPress={() => setView('all')}
                 startContent={<Grid size={18} />}
+                radius='none'
               >
                 All Images ({allImages.length})
               </Button>
@@ -307,6 +308,7 @@ export default function BatchImagesPage() {
                 color="primary"
                 onPress={() => setView('grouped')}
                 startContent={<LayoutGrid size={18} />}
+                radius='none'
               >
                 Grouped View
               </Button>
