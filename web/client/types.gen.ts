@@ -176,6 +176,73 @@ export type ImageResponse = {
 };
 
 /**
+ * Metadata
+ * Schema for detailed image metadata.
+ */
+export type Metadata = {
+  /**
+   * Width
+   */
+  width: number | null;
+  /**
+   * Height
+   */
+  height: number | null;
+  /**
+   * Orientation
+   */
+  orientation: number | null;
+  /**
+   * Shot At
+   */
+  shot_at: string | null;
+  /**
+   * Latitude
+   */
+  latitude: number | null;
+  /**
+   * Longitude
+   */
+  longitude: number | null;
+  /**
+   * Camera Make
+   */
+  camera_make: string | null;
+  /**
+   * Camera Model
+   */
+  camera_model: string | null;
+  /**
+   * Focal Length
+   */
+  focal_length: string | null;
+  /**
+   * F Number
+   */
+  f_number: number | null;
+  /**
+   * Exposure Time
+   */
+  exposure_time: string | null;
+  /**
+   * Iso
+   */
+  iso: number | null;
+  /**
+   * Caption
+   */
+  caption: string | null;
+  /**
+   * Tags
+   */
+  tags: unknown | null;
+  /**
+   * Rating
+   */
+  rating: number | null;
+};
+
+/**
  * ValidationError
  */
 export type ValidationError = {
@@ -322,6 +389,38 @@ export type GetImageThumbnailResponses = {
    */
   200: unknown;
 };
+
+export type GetImageMetadataData = {
+  body?: never;
+  path: {
+    /**
+     * Image Id
+     */
+    image_id: number;
+  };
+  query?: never;
+  url: "/images/metadata/{image_id}";
+};
+
+export type GetImageMetadataErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetImageMetadataError =
+  GetImageMetadataErrors[keyof GetImageMetadataErrors];
+
+export type GetImageMetadataResponses = {
+  /**
+   * Successful Response
+   */
+  200: Metadata;
+};
+
+export type GetImageMetadataResponse =
+  GetImageMetadataResponses[keyof GetImageMetadataResponses];
 
 export type GetAllBatchesData = {
   body?: never;

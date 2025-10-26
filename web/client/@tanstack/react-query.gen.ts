@@ -7,6 +7,7 @@ import {
   deleteImage,
   getImageFile,
   getImageThumbnail,
+  getImageMetadata,
   getAllBatches,
   createBatch,
   deleteBatch,
@@ -29,6 +30,7 @@ import type {
   DeleteImageError,
   GetImageFileData,
   GetImageThumbnailData,
+  GetImageMetadataData,
   GetAllBatchesData,
   CreateBatchData,
   CreateBatchError,
@@ -213,6 +215,30 @@ export const getImageThumbnailOptions = (
       return data;
     },
     queryKey: getImageThumbnailQueryKey(options),
+  });
+};
+
+export const getImageMetadataQueryKey = (
+  options: Options<GetImageMetadataData>,
+) => createQueryKey("getImageMetadata", options);
+
+/**
+ * Get Image Metadata
+ */
+export const getImageMetadataOptions = (
+  options: Options<GetImageMetadataData>,
+) => {
+  return queryOptions({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getImageMetadata({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getImageMetadataQueryKey(options),
   });
 };
 

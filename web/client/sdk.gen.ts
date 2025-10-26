@@ -21,6 +21,9 @@ import type {
   GetImageThumbnailData,
   GetImageThumbnailResponses,
   GetImageThumbnailErrors,
+  GetImageMetadataData,
+  GetImageMetadataResponses,
+  GetImageMetadataErrors,
   GetAllBatchesData,
   GetAllBatchesResponses,
   CreateBatchData,
@@ -155,6 +158,22 @@ export const getImageThumbnail = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     url: "/images/thumbnail/{image_id}",
+    ...options,
+  });
+};
+
+/**
+ * Get Image Metadata
+ */
+export const getImageMetadata = <ThrowOnError extends boolean = false>(
+  options: Options<GetImageMetadataData, ThrowOnError>,
+) => {
+  return (options.client ?? client).get<
+    GetImageMetadataResponses,
+    GetImageMetadataErrors,
+    ThrowOnError
+  >({
+    url: "/images/metadata/{image_id}",
     ...options,
   });
 };

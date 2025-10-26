@@ -252,6 +252,195 @@ export const ImageResponseSchema = {
   description: "Schema for returning image details. This model is unchanged.",
 } as const;
 
+export const MetadataSchema = {
+  properties: {
+    width: {
+      anyOf: [
+        {
+          type: "integer",
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "Width",
+    },
+    height: {
+      anyOf: [
+        {
+          type: "integer",
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "Height",
+    },
+    orientation: {
+      anyOf: [
+        {
+          type: "integer",
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "Orientation",
+    },
+    shot_at: {
+      anyOf: [
+        {
+          type: "string",
+          format: "date-time",
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "Shot At",
+    },
+    latitude: {
+      anyOf: [
+        {
+          type: "number",
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "Latitude",
+    },
+    longitude: {
+      anyOf: [
+        {
+          type: "number",
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "Longitude",
+    },
+    camera_make: {
+      anyOf: [
+        {
+          type: "string",
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "Camera Make",
+    },
+    camera_model: {
+      anyOf: [
+        {
+          type: "string",
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "Camera Model",
+    },
+    focal_length: {
+      anyOf: [
+        {
+          type: "string",
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "Focal Length",
+    },
+    f_number: {
+      anyOf: [
+        {
+          type: "number",
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "F Number",
+    },
+    exposure_time: {
+      anyOf: [
+        {
+          type: "string",
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "Exposure Time",
+    },
+    iso: {
+      anyOf: [
+        {
+          type: "integer",
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "Iso",
+    },
+    caption: {
+      anyOf: [
+        {
+          type: "string",
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "Caption",
+    },
+    tags: {
+      anyOf: [
+        {},
+        {
+          type: "null",
+        },
+      ],
+      title: "Tags",
+    },
+    rating: {
+      anyOf: [
+        {
+          type: "integer",
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "Rating",
+    },
+  },
+  type: "object",
+  required: [
+    "width",
+    "height",
+    "orientation",
+    "shot_at",
+    "latitude",
+    "longitude",
+    "camera_make",
+    "camera_model",
+    "focal_length",
+    "f_number",
+    "exposure_time",
+    "iso",
+    "caption",
+    "tags",
+    "rating",
+  ],
+  title: "Metadata",
+  description: "Schema for detailed image metadata.",
+} as const;
+
 export const ValidationErrorSchema = {
   properties: {
     loc: {
