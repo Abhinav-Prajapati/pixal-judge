@@ -160,7 +160,9 @@ def analyze_batch(db: Session, batch_id: int, params: BatchAnalyze) -> ImageBatc
         metric=params.metric
     )
     labels = grouper.fit_predict(features_matrix)
-    _save_cluster_plot(features_matrix, labels, batch.id, metric=params.metric)
+
+    # This gives tkinter issue so only enable when testing locally
+    #_save_cluster_plot(features_matrix, labels, batch.id, metric=params.metric)
 
     
     # Create a mapping from numeric labels to descriptive names
