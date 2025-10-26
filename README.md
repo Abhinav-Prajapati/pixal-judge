@@ -3,8 +3,10 @@
 A full-stack application for uploading, managing, and visually clustering large image collections using machine learning.
 
 ## Demo with images of various types
-
-<img src="assets/Screenshot_20251027_021551.png" alt="Alt Text" width="500">
+<div align="center">
+  <img src="assets/Screenshot_20251027_021551.png" alt="Cluster Screenshot" width="45%">
+  <img src="assets/batch_18_cluster_plot_20251027_020508.png" alt="Cluster Plot" width="28%">
+</div>
 
 ## Core Features
 
