@@ -20,9 +20,9 @@ export function ImageCard({ image }: { image: ImageResponse }) {
       onClick={handleToggleSelection}
       className={clsx(
         "relative flex flex-col aspect-square w-44 overflow-hidden bg-neutral-100 dark:bg-neutral-800 border group",
-        "cursor-pointer transition-all duration-150 ease-in-out hover:scale-[1.03]",
+        "cursor-pointer transition-all duration-150 ease-in-out",
         isSelected
-          ? "border-blue-500 border-2 shadow-lg scale-[1.03]" // Selected state
+          ? "border-blue-500 border-1 shadow-lg" // Selected state
           : "border-neutral-200 dark:border-neutral-700" // Default state
       )}
     >
@@ -51,10 +51,7 @@ export function ImageCard({ image }: { image: ImageResponse }) {
         </div>
       )}
 
-      {/* Subtle Hover Overlay (only when not selected) */}
-      {/* {!isSelected && (
-                <div className="absolute inset-0 bg-black/10 dark:bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
-            )} */}
+      <div className="absolute inset-0 bg-black/10 dark:bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
     </div>
   );
 }

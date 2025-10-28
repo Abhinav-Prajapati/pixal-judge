@@ -58,7 +58,7 @@ function ImageGrid({
 				<div
 					key={image.id}
 					onClick={() => onImageClick(image)} // <-- Call handler on click
-					className="cursor-pointer transition-transform duration-150 ease-in-out hover:scale-[1.02]"
+					className="cursor-pointer transition-transform duration-150 ease-in-out"
 				>
 					<ImageCard image={image} />
 				</div>
@@ -96,9 +96,9 @@ function MetadataDisplay({ metadata }: { metadata: Metadata }) {
 	// Format 'shot_at' to be more readable
 	const shotAtFormatted = metadata.shot_at
 		? new Date(metadata.shot_at).toLocaleString(undefined, {
-				dateStyle: "medium",
-				timeStyle: "short",
-			})
+			dateStyle: "medium",
+			timeStyle: "short",
+		})
 		: null;
 
 	// Format 'tags' nicely
