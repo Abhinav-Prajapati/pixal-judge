@@ -1,3 +1,4 @@
+// src/app/batch/[batchId]/page.tsx
 "use client";
 
 import React, { useMemo, useState, useCallback } from "react";
@@ -33,6 +34,7 @@ import {
 } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { getImageMetadata } from "@/client";
+import { useViewStore } from "./components/viewStore"; // Import the store
 
 const API_BASE_URL =
 	process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
@@ -244,7 +246,9 @@ function ImageDetailPanel({
 export default function BatchImagesPage() {
 	const params = useParams();
 	const batchId = Number(params.batchId);
-	const [view, setView] = useState<"all" | "grouped">("all");
+
+	// Replace useState with the Zustand store
+	const { view, setView } = useViewStore();
 
 	const [selectedImage, setSelectedImage] = useState<ImageResponse | null>(
 		null,
