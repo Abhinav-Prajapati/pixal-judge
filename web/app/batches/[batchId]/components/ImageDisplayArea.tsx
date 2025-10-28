@@ -2,7 +2,7 @@
 
 import React from "react";
 import type { ImageResponse } from "@/client/types.gen";
-import { useViewStore } from "./viewStore";
+import { useBatchViewStore } from "./useBatchViewStore";
 import { NavToolBar } from "./NavToolbar";
 import { ImageGrid } from "./ImageGrid";
 
@@ -21,7 +21,7 @@ export function ImageDisplayArea({
   onImageSelect: (image: ImageResponse) => void;
   selectedImageIds: Set<number>;
 }) {
-  const { view } = useViewStore();
+  const { view } = useBatchViewStore();
 
   return (
     <div className="flex flex-col flex-grow min-w-0">

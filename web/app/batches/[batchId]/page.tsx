@@ -5,7 +5,7 @@ import { client } from "@/client/client.gen";
 
 import { useBatchData } from "@/hooks/useBatchData";
 import { useImageInteractions } from "@/hooks/useImageInteractions";
-import { useViewStore } from "./components/viewStore";
+import { useBatchViewStore } from "./components/useBatchViewStore";
 
 import { BatchToolBox } from "./components/BatchToolBox";
 import { ImageDisplayArea } from "./components/ImageDisplayArea";
@@ -23,6 +23,7 @@ export default function BatchImagesPage() {
 		clusterEntries,
 		isLoading,
 		isError,
+		error,
 	} = useBatchData();
 
 	const {
@@ -34,7 +35,7 @@ export default function BatchImagesPage() {
 		detailImage,
 		showImageDetails,
 		closeImageDetails
-	} = useViewStore();
+	} = useBatchViewStore();
 
 	if (isNaN(batchId)) {
 		return (
@@ -81,6 +82,7 @@ export default function BatchImagesPage() {
 					selectedImageIds={selectedImageIds}
 				/>
 
+				{/* Use state from the store */}
 				{detailImage && (
 					<ImageDetailPanel image={detailImage} onClose={closeImageDetails} />
 				)}

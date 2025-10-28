@@ -9,7 +9,7 @@ type ViewState = {
   closeImageDetails: () => void;
 };
 
-export const useViewStore = create<ViewState>((set) => ({
+export const useBatchViewStore = create<ViewState>((set) => ({
   view: "all",
   detailImage: null,
   setView: (newView) => set({ view: newView }),
