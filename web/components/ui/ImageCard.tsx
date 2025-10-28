@@ -3,13 +3,11 @@ import Image from 'next/image';
 import React from 'react';
 import { siteConfig } from '@/config/site';
 import { Image as ImageIcon, CheckCircle2 } from 'lucide-react';
-import clsx from 'clsx'; // Import clsx for conditional classes
+import clsx from 'clsx';
 
-// Import the Zustand store hook
 import { useImageSelectionStore } from '@/lib/stores/useImageSelectionStore';
 
 export function ImageCard({ image }: { image: ImageResponse }) {
-  // Subscribe to the store to get state and actions
   const { selectedImageIds, toggleImage } = useImageSelectionStore();
   const isSelected = selectedImageIds.has(image.id);
 
@@ -18,13 +16,11 @@ export function ImageCard({ image }: { image: ImageResponse }) {
   };
 
   return (
-    // Added onClick handler here
     <div
       onClick={handleToggleSelection}
       className={clsx(
         "relative flex flex-col aspect-square w-44 overflow-hidden bg-neutral-100 dark:bg-neutral-800 border group",
         "cursor-pointer transition-all duration-150 ease-in-out hover:scale-[1.03]",
-        // Apply conditional styling for selection
         isSelected
           ? "border-blue-500 border-2 shadow-lg scale-[1.03]" // Selected state
           : "border-neutral-200 dark:border-neutral-700" // Default state
@@ -37,7 +33,7 @@ export function ImageCard({ image }: { image: ImageResponse }) {
           alt={image.original_filename}
           fill
           sizes="(max-width: 640px) 50vw, (max-width: 768px) 25vw, 16vw"
-          className="object-contain p-1" // Reduced padding slightly
+          className="object-contain p-1"
         />
       </div>
       {/* Filename container */}
