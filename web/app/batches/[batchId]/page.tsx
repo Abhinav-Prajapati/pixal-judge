@@ -1,4 +1,3 @@
-// src/app/batch/[batchId]/page.tsx
 "use client";
 
 import React, { useMemo, useState, useCallback } from "react";
@@ -34,7 +33,8 @@ import {
 } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { getImageMetadata } from "@/client";
-import { useViewStore } from "./components/viewStore"; // Import the store
+import { useViewStore } from "./components/viewStore";
+import { useSelectionStore } from "./components/selectionStore";
 
 const API_BASE_URL =
 	process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
@@ -46,25 +46,46 @@ client.setConfig({ baseUrl: API_BASE_URL });
 function ImageGrid({
 	images,
 	onImageClick,
+	onImageSelect,
+	selectedImageIds,
 }: {
 	images: ImageResponse[];
 	onImageClick: (image: ImageResponse) => void;
+	onImageSelect: (image: ImageResponse) => void; // New prop for selection
+	selectedImageIds: Set<number>; // New prop to know what's selected
 }) {
 	if (!images || images.length === 0) {
 		return <p className="text-base-content/60">No images to display.</p>;
 	}
 	return (
 		<div className="flex flex-wrap gap-2 ">
-			{images.map((image) => (
-				// Wrap ImageCard in a clickable div
-				<div
-					key={image.id}
-					onClick={() => onImageClick(image)} // <-- Call handler on click
-					className="cursor-pointer transition-transform duration-150 ease-in-out"
-				>
-					<ImageCard image={image} />
-				</div>
-			))}
+			{images.map((image) => {
+				const isSelected = selectedImageIds.has(image.id);
+				return (
+					// Wrap ImageCard in a clickable div
+					<div
+						key={image.id}
+						onClick={(e) => {
+							// On Ctrl (Windows/Linux) or Meta (Mac) click, toggle selection
+							if (e.ctrlKey || e.metaKey) {
+								e.preventDefault();
+								onImageSelect(image);
+							} else {
+								// On a normal click, open the detail panel
+								onImageClick(image);
+							}
+						}}
+						className={`cursor-pointer transition-all duration-150 ease-in-out
+              ${isSelected
+								? "ring-2 ring-primary ring-offset-2 ring-offset-base-100 rounded-md"
+								: ""
+							}
+            `}
+					>
+						<ImageCard image={image} />
+					</div>
+				);
+			})}
 		</div>
 	);
 }
@@ -247,20 +268,32 @@ export default function BatchImagesPage() {
 	const params = useParams();
 	const batchId = Number(params.batchId);
 
-	// Replace useState with the Zustand store
+	// State from your stores
 	const { view, setView } = useViewStore();
+	const { selectedImageIds, toggleSelection } = useSelectionStore();
 
+	// Local state for the detail panel
 	const [selectedImage, setSelectedImage] = useState<ImageResponse | null>(
 		null,
 	);
 
+	// Callback for opening the detail panel (normal click)
 	const handleImageClick = useCallback((image: ImageResponse) => {
 		setSelectedImage(image);
 	}, []);
 
+	// Callback for closing the detail panel
 	const handleClosePanel = useCallback(() => {
 		setSelectedImage(null);
 	}, []);
+
+	// Callback for toggling selection (Ctrl/Cmd + Click)
+	const handleImageSelect = useCallback(
+		(image: ImageResponse) => {
+			toggleSelection(image.id);
+		},
+		[toggleSelection],
+	);
 
 	const {
 		data: batch,
@@ -366,7 +399,12 @@ export default function BatchImagesPage() {
 					{/* Page Content Area */}
 					<div className="flex-grow p-4">
 						{view === "all" && (
-							<ImageGrid images={allImages} onImageClick={handleImageClick} />
+							<ImageGrid
+								images={allImages}
+								onImageClick={handleImageClick}
+								onImageSelect={handleImageSelect}
+								selectedImageIds={selectedImageIds}
+							/>
 						)}
 						{view === "grouped" && (
 							<div className="flex flex-col gap-6">
@@ -381,6 +419,8 @@ export default function BatchImagesPage() {
 										<ImageGrid
 											images={images}
 											onImageClick={handleImageClick}
+											onImageSelect={handleImageSelect}
+											selectedImageIds={selectedImageIds}
 										/>
 									</section>
 								))}
