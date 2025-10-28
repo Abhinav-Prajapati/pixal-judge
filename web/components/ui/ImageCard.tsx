@@ -5,7 +5,7 @@ import { siteConfig } from '@/config/site';
 import { Image as ImageIcon, CheckCircle2 } from 'lucide-react';
 import clsx from 'clsx';
 
-import { useImageSelectionStore } from '@/lib/stores/useImageSelectionStore';
+import { useImageSelectionStore } from '@/stores/useImageSelectionStore';
 
 export function ImageCard({ image }: { image: ImageResponse }) {
   const { selectedImageIds, toggleImage } = useImageSelectionStore();

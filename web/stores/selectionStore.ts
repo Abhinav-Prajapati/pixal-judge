@@ -1,19 +1,8 @@
 import { create } from "zustand";
 
 type SelectionState = {
-  /**
-   * A Set of image IDs that are currently selected.
-   */
   selectedImageIds: Set<number>;
-
-  /**
-   * Toggles the selection state for a single image ID.
-   */
   toggleSelection: (imageId: number) => void;
-
-  /**
-   * Clears the entire selection, deselecting all images.
-   */
   clearSelection: () => void;
 };
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useImageSelectionStore } from '@/lib/stores/useImageSelectionStore';
+import { useImageSelectionStore } from '@/stores/useImageSelectionStore';
 import { Button } from "@heroui/button";
 import { Card, CardBody } from "@heroui/card";
 import { Trash2, FolderSymlink, X } from 'lucide-react';

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useRef, ChangeEvent, FormEvent } from 'react';
@@ -29,7 +30,7 @@ interface ClusteringToolboxProps {
   batchId: number;
 }
 
-export function ClusteringToolbox({ batchId }: ClusteringToolboxProps) {
+export function BatchToolBox({ batchId }: ClusteringToolboxProps) {
   const queryClient = useQueryClient();
   const [minClusterSize, setMinClusterSize] = useState(5);
   const [minSamples, setMinSamples] = useState(5);
@@ -227,7 +228,7 @@ export function ClusteringToolbox({ batchId }: ClusteringToolboxProps) {
   const isBusy = clusterMutation.isPending || uploadMutation.isPending || renameMutation.isPending || deleteMutation.isPending;
 
   return (
-    <div className='h-full flex flex-col bg-content1'>
+    <div className='h-screen flex flex-col bg-content1'>
       <div className="flex flex-shrink-0 items-center gap-2 p-2 border-b border-r border-default-200">
         <Button size="md" variant="light" isIconOnly onPress={() => router.back()} >
           <ArrowLeft />
