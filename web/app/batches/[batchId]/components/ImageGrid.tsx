@@ -21,33 +21,15 @@ export function ImageGrid({
 
   return (
     <div className="flex flex-wrap gap-2 ">
-      {images.map((image) => {
-        const isSelected = selectedImageIds.has(image.id);
-        return (
-          // Wrap ImageCard in a clickable div
-          <div
-            key={image.id}
-            onClick={(e) => {
-              // On Ctrl (Windows/Linux) or Meta (Mac) click, toggle selection
-              if (e.ctrlKey || e.metaKey) {
-                e.preventDefault();
-                onImageSelect(image);
-              } else {
-                // On a normal click, open the detail panel
-                onImageClick(image);
-              }
-            }}
-            className={`cursor-pointer transition-all duration-150 ease-in-out
-              ${isSelected
-                ? "ring-2 ring-primary ring-offset-2 ring-offset-base-100 rounded-md"
-                : ""
-              }
-            `}
-          >
-            <ImageCard image={image} />
-          </div>
-        );
-      })}
+      {images.map((image) => (
+        <ImageCard
+          key={image.id}
+          image={image}
+          isSelected={selectedImageIds.has(image.id)}
+          onDetailClick={onImageClick}
+          onSelectToggle={onImageSelect}
+        />
+      ))}
     </div>
   );
 }
