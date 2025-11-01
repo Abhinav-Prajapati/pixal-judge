@@ -228,7 +228,7 @@ export function BatchToolBox({ batchId }: ClusteringToolboxProps) {
   const isBusy = clusterMutation.isPending || uploadMutation.isPending || renameMutation.isPending || deleteMutation.isPending;
 
   return (
-    <div className='h-screen flex flex-col bg-content1'>
+    <div className='h-screen flex flex-col bg-content1 sticky top-0'>
       <div className="flex flex-shrink-0 items-center gap-2 p-2 border-b border-r border-default-200">
         <Button size="md" variant="light" isIconOnly onPress={() => router.back()} >
           <ArrowLeft />
