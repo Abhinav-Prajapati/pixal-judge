@@ -103,6 +103,11 @@ class ImageBatchAssociation(Base):
     batch_id = Column(ForeignKey(f'{DB_SCHEMA}.image_batches.id'), primary_key=True)
     image_id = Column(ForeignKey(f'{DB_SCHEMA}.images.id'), primary_key=True)
     group_label = Column(String(50), nullable=True)
+    
+    # Quality ranking within group
+    quality_rank = Column(Integer, nullable=True)
+    ranked_at = Column(DateTime(timezone=True), nullable=True)
+    ranking_metric = Column(String(50), nullable=True)
 
     batch = relationship("ImageBatch", back_populates="image_associations")
     image = relationship("Image", back_populates="batch_associations")

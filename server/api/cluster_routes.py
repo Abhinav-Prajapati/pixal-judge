@@ -31,8 +31,19 @@ def get_all_batches(db: Session = Depends(get_db)):
 
 @router.get("/{batch_id}", response_model=BatchResponse, operation_id="getBatch")
 def get_batch_details(batch_id: int, db: Session = Depends(get_db)):
-    """Returns details for a specific batch."""
-    return get_batch_or_404(db, batch_id)
+    """Returns details for a specific batch with images sorted by quality_rank within groups."""
+    batch = get_batch_or_404(db, batch_id)
+    
+    # Sort associations by group_label, then by quality_rank (nulls last)
+    batch.image_associations = sorted(
+        batch.image_associations,
+        key=lambda a: (
+            a.group_label or "",
+            a.quality_rank if a.quality_rank is not None else float('inf')
+        )
+    )
+    
+    return batch
 
 @router.put("/{batch_id}", response_model=BatchResponse, operation_id="renameBatch")
 def rename_batch(batch_id: int, batch_data: BatchRename, db: Session = Depends(get_db)):
@@ -96,3 +107,17 @@ def update_groups(batch_id: int, group_data: BatchGroupUpdate, db: Session = Dep
         return batch_service.update_manual_groups(db, batch_id=batch_id, group_map=group_data.group_map)
     except ServiceError as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
+
+@router.post("/{batch_id}/groups/{group_label}/rank", response_model=BatchResponse, operation_id="rankGroupImages")
+def rank_group_images(
+    batch_id: int, 
+    group_label: str, 
+    metric: str = "liqe",
+    db: Session = Depends(get_db)
+):
+    """Ranks images within a specific group by quality score."""
+    try:
+        return batch_service.rank_group_images(db, batch_id=batch_id, group_label=group_label, metric=metric)
+    except ServiceError as e:
+        raise HTTPException(status_code=e.status_code, detail=e.message)
+

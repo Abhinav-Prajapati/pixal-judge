@@ -22,6 +22,9 @@ class GroupAssociationResponse(BaseModel):
     """Schema for an image's association within a batch, including its group."""
     image: ImageResponse
     group_label: str | None
+    quality_rank: int | None = None
+    ranked_at: datetime | None = None
+    ranking_metric: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
 class BatchCreate(BaseModel):

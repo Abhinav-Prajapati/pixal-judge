@@ -2,6 +2,7 @@ import numpy as np
 from sqlalchemy.orm import Session
 from fastapi import UploadFile
 from typing import List, Dict, Tuple
+from datetime import datetime
 
 from crud import crud_batch, crud_image
 from database.models import ImageBatch, Image
@@ -99,3 +100,45 @@ def analyze_batch(db: Session, batch_id: int, params: BatchAnalyze) -> ImageBatc
     
     batch.status = 'complete'
     return crud_batch.update(db, db_obj=batch)
+
+def rank_group_images(db: Session, batch_id: int, group_label: str, metric: str = "liqe") -> ImageBatch:
+    """
+    Rank images within a specific group by quality score.
+    Updates the association table with quality_rank, ranked_at, and ranking_metric.
+    """
+    batch = get_batch_or_404(db, batch_id)
+    
+    # Get associations for this specific group
+    group_associations = [
+        assoc for assoc in batch.image_associations 
+        if assoc.group_label == group_label
+    ]
+    
+    if not group_associations:
+        raise ServiceError(f"No images found in group '{group_label}'", 404)
+    
+    # Get image IDs for quality analysis
+    image_ids = [assoc.image_id for assoc in group_associations]
+    
+    # Analyze quality for all images in the group
+    quality_results = []
+    for image_id in image_ids:
+        score = image_service.analyze_image_quality(db, image_id, metric, force_reanalyze=False)
+        quality_results.append((image_id, score))
+    
+    # Sort by quality score (descending - best first)
+    quality_results.sort(key=lambda x: x[1], reverse=True)
+    
+    # Update associations with rankings
+    association_map = {assoc.image_id: assoc for assoc in group_associations}
+    now = datetime.utcnow()
+    
+    for rank, (image_id, score) in enumerate(quality_results, start=1):
+        assoc = association_map[image_id]
+        assoc.quality_rank = rank
+        assoc.ranked_at = now
+        assoc.ranking_metric = metric
+    
+    db.commit()
+    db.refresh(batch)
+    return batch
