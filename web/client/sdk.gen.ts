@@ -24,6 +24,12 @@ import type {
   GetImageMetadataData,
   GetImageMetadataResponses,
   GetImageMetadataErrors,
+  GetImageQualityImagesQualityImageIdGetData,
+  GetImageQualityImagesQualityImageIdGetResponses,
+  GetImageQualityImagesQualityImageIdGetErrors,
+  AnalyzeBatchQualityData,
+  AnalyzeBatchQualityResponses,
+  AnalyzeBatchQualityErrors,
   GetAllBatchesData,
   GetAllBatchesResponses,
   CreateBatchData,
@@ -77,8 +83,7 @@ export type Options<
 
 /**
  * Upload Images
- * Uploads one or more image files. For each new image, it queues background
- * tasks for metadata extraction, thumbnail generation, and feature embedding.
+ * Uploads one or more image files and processes them in the background.
  */
 export const uploadImages = <ThrowOnError extends boolean = false>(
   options: Options<UploadImagesData, ThrowOnError>,
@@ -132,6 +137,7 @@ export const deleteImage = <ThrowOnError extends boolean = false>(
 
 /**
  * Get Image File
+ * Returns the full-size image file.
  */
 export const getImageFile = <ThrowOnError extends boolean = false>(
   options: Options<GetImageFileData, ThrowOnError>,
@@ -148,6 +154,7 @@ export const getImageFile = <ThrowOnError extends boolean = false>(
 
 /**
  * Get Thumbnail File
+ * Returns the thumbnail image file.
  */
 export const getImageThumbnail = <ThrowOnError extends boolean = false>(
   options: Options<GetImageThumbnailData, ThrowOnError>,
@@ -164,6 +171,7 @@ export const getImageThumbnail = <ThrowOnError extends boolean = false>(
 
 /**
  * Get Image Metadata
+ * Returns detailed EXIF metadata for an image.
  */
 export const getImageMetadata = <ThrowOnError extends boolean = false>(
   options: Options<GetImageMetadataData, ThrowOnError>,
@@ -179,7 +187,52 @@ export const getImageMetadata = <ThrowOnError extends boolean = false>(
 };
 
 /**
+ * Get Image Quality
+ * Get or calculate image quality score.
+ *
+ * - Returns cached score if available and metric matches
+ * - Calculates new score if not cached or force_reanalyze=True
+ * - Supported metrics: liqe, clipiqa+, brisque, niqe, musiq, cnniqa
+ */
+export const getImageQualityImagesQualityImageIdGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<GetImageQualityImagesQualityImageIdGetData, ThrowOnError>,
+) => {
+  return (options.client ?? client).get<
+    GetImageQualityImagesQualityImageIdGetResponses,
+    GetImageQualityImagesQualityImageIdGetErrors,
+    ThrowOnError
+  >({
+    url: "/images/quality/{image_id}",
+    ...options,
+  });
+};
+
+/**
+ * Analyze Batch Quality
+ * Analyze quality for multiple images at once.
+ */
+export const analyzeBatchQuality = <ThrowOnError extends boolean = false>(
+  options: Options<AnalyzeBatchQualityData, ThrowOnError>,
+) => {
+  return (options.client ?? client).post<
+    AnalyzeBatchQualityResponses,
+    AnalyzeBatchQualityErrors,
+    ThrowOnError
+  >({
+    url: "/images/quality/batch",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+};
+
+/**
  * Get All Batches
+ * Returns all batches.
  */
 export const getAllBatches = <ThrowOnError extends boolean = false>(
   options?: Options<GetAllBatchesData, ThrowOnError>,
@@ -196,6 +249,7 @@ export const getAllBatches = <ThrowOnError extends boolean = false>(
 
 /**
  * Create Batch
+ * Creates a new batch with the specified images.
  */
 export const createBatch = <ThrowOnError extends boolean = false>(
   options: Options<CreateBatchData, ThrowOnError>,
@@ -216,6 +270,7 @@ export const createBatch = <ThrowOnError extends boolean = false>(
 
 /**
  * Delete Batch
+ * Deletes a batch.
  */
 export const deleteBatch = <ThrowOnError extends boolean = false>(
   options: Options<DeleteBatchData, ThrowOnError>,
@@ -232,6 +287,7 @@ export const deleteBatch = <ThrowOnError extends boolean = false>(
 
 /**
  * Get Batch Details
+ * Returns details for a specific batch.
  */
 export const getBatch = <ThrowOnError extends boolean = false>(
   options: Options<GetBatchData, ThrowOnError>,
@@ -248,6 +304,7 @@ export const getBatch = <ThrowOnError extends boolean = false>(
 
 /**
  * Rename Batch
+ * Renames an existing batch.
  */
 export const renameBatch = <ThrowOnError extends boolean = false>(
   options: Options<RenameBatchData, ThrowOnError>,
@@ -268,6 +325,7 @@ export const renameBatch = <ThrowOnError extends boolean = false>(
 
 /**
  * Remove Images From Batch
+ * Removes images from a batch.
  */
 export const removeImagesFromBatch = <ThrowOnError extends boolean = false>(
   options: Options<RemoveImagesFromBatchData, ThrowOnError>,
@@ -288,6 +346,7 @@ export const removeImagesFromBatch = <ThrowOnError extends boolean = false>(
 
 /**
  * Add Images To Batch
+ * Adds existing images to a batch.
  */
 export const addImagesToBatch = <ThrowOnError extends boolean = false>(
   options: Options<AddImagesToBatchData, ThrowOnError>,
@@ -308,7 +367,7 @@ export const addImagesToBatch = <ThrowOnError extends boolean = false>(
 
 /**
  * Upload And Add To Batch
- * Uploads new images, adds them to the batch, and queues background tasks for processing.
+ * Uploads new images and adds them to the batch.
  */
 export const uploadAndAddImagesToBatch = <ThrowOnError extends boolean = false>(
   options: Options<UploadAndAddImagesToBatchData, ThrowOnError>,
@@ -330,6 +389,7 @@ export const uploadAndAddImagesToBatch = <ThrowOnError extends boolean = false>(
 
 /**
  * Analyze Batch
+ * Analyzes a batch using clustering to group similar images.
  */
 export const analyzeBatch = <ThrowOnError extends boolean = false>(
   options: Options<AnalyzeBatchData, ThrowOnError>,
@@ -350,6 +410,7 @@ export const analyzeBatch = <ThrowOnError extends boolean = false>(
 
 /**
  * Update Groups
+ * Manually updates the group assignments for images in a batch.
  */
 export const updateGroupsInBatch = <ThrowOnError extends boolean = false>(
   options: Options<UpdateGroupsInBatchData, ThrowOnError>,

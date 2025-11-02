@@ -201,6 +201,42 @@ export const HTTPValidationErrorSchema = {
   title: "HTTPValidationError",
 } as const;
 
+export const ImageQualityResponseSchema = {
+  properties: {
+    image_id: {
+      type: "integer",
+      title: "Image Id",
+    },
+    quality_score: {
+      type: "number",
+      title: "Quality Score",
+    },
+    quality_metric: {
+      type: "string",
+      title: "Quality Metric",
+    },
+    analyzed_at: {
+      type: "string",
+      format: "date-time",
+      title: "Analyzed At",
+    },
+    file_name: {
+      type: "string",
+      title: "File Name",
+    },
+  },
+  type: "object",
+  required: [
+    "image_id",
+    "quality_score",
+    "quality_metric",
+    "analyzed_at",
+    "file_name",
+  ],
+  title: "ImageQualityResponse",
+  description: "Response with image quality score.",
+} as const;
+
 export const ImageResponseSchema = {
   properties: {
     id: {
@@ -238,6 +274,28 @@ export const ImageResponseSchema = {
         },
       ],
       title: "Message",
+    },
+    quality_score: {
+      anyOf: [
+        {
+          type: "number",
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "Quality Score",
+    },
+    quality_metric: {
+      anyOf: [
+        {
+          type: "string",
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "Quality Metric",
     },
   },
   type: "object",
@@ -420,23 +478,6 @@ export const MetadataSchema = {
     },
   },
   type: "object",
-  required: [
-    "width",
-    "height",
-    "orientation",
-    "shot_at",
-    "latitude",
-    "longitude",
-    "camera_make",
-    "camera_model",
-    "focal_length",
-    "f_number",
-    "exposure_time",
-    "iso",
-    "caption",
-    "tags",
-    "rating",
-  ],
   title: "Metadata",
   description: "Schema for detailed image metadata.",
 } as const;

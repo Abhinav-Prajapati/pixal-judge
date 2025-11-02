@@ -8,6 +8,8 @@ import {
   getImageFile,
   getImageThumbnail,
   getImageMetadata,
+  getImageQualityImagesQualityImageIdGet,
+  analyzeBatchQuality,
   getAllBatches,
   createBatch,
   deleteBatch,
@@ -31,6 +33,10 @@ import type {
   GetImageFileData,
   GetImageThumbnailData,
   GetImageMetadataData,
+  GetImageQualityImagesQualityImageIdGetData,
+  AnalyzeBatchQualityData,
+  AnalyzeBatchQualityError,
+  AnalyzeBatchQualityResponse,
   GetAllBatchesData,
   CreateBatchData,
   CreateBatchError,
@@ -62,8 +68,7 @@ import { client } from "../client.gen";
 
 /**
  * Upload Images
- * Uploads one or more image files. For each new image, it queues background
- * tasks for metadata extraction, thumbnail generation, and feature embedding.
+ * Uploads one or more image files and processes them in the background.
  */
 export const uploadImagesMutation = (
   options?: Partial<Options<UploadImagesData>>,
@@ -178,6 +183,7 @@ export const getImageFileQueryKey = (options: Options<GetImageFileData>) =>
 
 /**
  * Get Image File
+ * Returns the full-size image file.
  */
 export const getImageFileOptions = (options: Options<GetImageFileData>) => {
   return queryOptions({
@@ -200,6 +206,7 @@ export const getImageThumbnailQueryKey = (
 
 /**
  * Get Thumbnail File
+ * Returns the thumbnail image file.
  */
 export const getImageThumbnailOptions = (
   options: Options<GetImageThumbnailData>,
@@ -224,6 +231,7 @@ export const getImageMetadataQueryKey = (
 
 /**
  * Get Image Metadata
+ * Returns detailed EXIF metadata for an image.
  */
 export const getImageMetadataOptions = (
   options: Options<GetImageMetadataData>,
@@ -242,11 +250,69 @@ export const getImageMetadataOptions = (
   });
 };
 
+export const getImageQualityImagesQualityImageIdGetQueryKey = (
+  options: Options<GetImageQualityImagesQualityImageIdGetData>,
+) => createQueryKey("getImageQualityImagesQualityImageIdGet", options);
+
+/**
+ * Get Image Quality
+ * Get or calculate image quality score.
+ *
+ * - Returns cached score if available and metric matches
+ * - Calculates new score if not cached or force_reanalyze=True
+ * - Supported metrics: liqe, clipiqa+, brisque, niqe, musiq, cnniqa
+ */
+export const getImageQualityImagesQualityImageIdGetOptions = (
+  options: Options<GetImageQualityImagesQualityImageIdGetData>,
+) => {
+  return queryOptions({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getImageQualityImagesQualityImageIdGet({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getImageQualityImagesQualityImageIdGetQueryKey(options),
+  });
+};
+
+/**
+ * Analyze Batch Quality
+ * Analyze quality for multiple images at once.
+ */
+export const analyzeBatchQualityMutation = (
+  options?: Partial<Options<AnalyzeBatchQualityData>>,
+): UseMutationOptions<
+  AnalyzeBatchQualityResponse,
+  AnalyzeBatchQualityError,
+  Options<AnalyzeBatchQualityData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    AnalyzeBatchQualityResponse,
+    AnalyzeBatchQualityError,
+    Options<AnalyzeBatchQualityData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await analyzeBatchQuality({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
 export const getAllBatchesQueryKey = (options?: Options<GetAllBatchesData>) =>
   createQueryKey("getAllBatches", options);
 
 /**
  * Get All Batches
+ * Returns all batches.
  */
 export const getAllBatchesOptions = (options?: Options<GetAllBatchesData>) => {
   return queryOptions({
@@ -265,6 +331,7 @@ export const getAllBatchesOptions = (options?: Options<GetAllBatchesData>) => {
 
 /**
  * Create Batch
+ * Creates a new batch with the specified images.
  */
 export const createBatchMutation = (
   options?: Partial<Options<CreateBatchData>>,
@@ -292,6 +359,7 @@ export const createBatchMutation = (
 
 /**
  * Delete Batch
+ * Deletes a batch.
  */
 export const deleteBatchMutation = (
   options?: Partial<Options<DeleteBatchData>>,
@@ -318,6 +386,7 @@ export const getBatchQueryKey = (options: Options<GetBatchData>) =>
 
 /**
  * Get Batch Details
+ * Returns details for a specific batch.
  */
 export const getBatchOptions = (options: Options<GetBatchData>) => {
   return queryOptions({
@@ -336,6 +405,7 @@ export const getBatchOptions = (options: Options<GetBatchData>) => {
 
 /**
  * Rename Batch
+ * Renames an existing batch.
  */
 export const renameBatchMutation = (
   options?: Partial<Options<RenameBatchData>>,
@@ -363,6 +433,7 @@ export const renameBatchMutation = (
 
 /**
  * Remove Images From Batch
+ * Removes images from a batch.
  */
 export const removeImagesFromBatchMutation = (
   options?: Partial<Options<RemoveImagesFromBatchData>>,
@@ -390,6 +461,7 @@ export const removeImagesFromBatchMutation = (
 
 /**
  * Add Images To Batch
+ * Adds existing images to a batch.
  */
 export const addImagesToBatchMutation = (
   options?: Partial<Options<AddImagesToBatchData>>,
@@ -417,7 +489,7 @@ export const addImagesToBatchMutation = (
 
 /**
  * Upload And Add To Batch
- * Uploads new images, adds them to the batch, and queues background tasks for processing.
+ * Uploads new images and adds them to the batch.
  */
 export const uploadAndAddImagesToBatchMutation = (
   options?: Partial<Options<UploadAndAddImagesToBatchData>>,
@@ -445,6 +517,7 @@ export const uploadAndAddImagesToBatchMutation = (
 
 /**
  * Analyze Batch
+ * Analyzes a batch using clustering to group similar images.
  */
 export const analyzeBatchMutation = (
   options?: Partial<Options<AnalyzeBatchData>>,
@@ -472,6 +545,7 @@ export const analyzeBatchMutation = (
 
 /**
  * Update Groups
+ * Manually updates the group assignments for images in a batch.
  */
 export const updateGroupsInBatchMutation = (
   options?: Partial<Options<UpdateGroupsInBatchData>>,

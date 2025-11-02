@@ -141,6 +141,33 @@ export type HttpValidationError = {
 };
 
 /**
+ * ImageQualityResponse
+ * Response with image quality score.
+ */
+export type ImageQualityResponse = {
+  /**
+   * Image Id
+   */
+  image_id: number;
+  /**
+   * Quality Score
+   */
+  quality_score: number;
+  /**
+   * Quality Metric
+   */
+  quality_metric: string;
+  /**
+   * Analyzed At
+   */
+  analyzed_at: string;
+  /**
+   * File Name
+   */
+  file_name: string;
+};
+
+/**
  * ImageResponse
  * Schema for returning image details. This model is unchanged.
  */
@@ -173,6 +200,14 @@ export type ImageResponse = {
    * Message
    */
   message?: string | null;
+  /**
+   * Quality Score
+   */
+  quality_score?: number | null;
+  /**
+   * Quality Metric
+   */
+  quality_metric?: string | null;
 };
 
 /**
@@ -183,63 +218,63 @@ export type Metadata = {
   /**
    * Width
    */
-  width: number | null;
+  width?: number | null;
   /**
    * Height
    */
-  height: number | null;
+  height?: number | null;
   /**
    * Orientation
    */
-  orientation: number | null;
+  orientation?: number | null;
   /**
    * Shot At
    */
-  shot_at: string | null;
+  shot_at?: string | null;
   /**
    * Latitude
    */
-  latitude: number | null;
+  latitude?: number | null;
   /**
    * Longitude
    */
-  longitude: number | null;
+  longitude?: number | null;
   /**
    * Camera Make
    */
-  camera_make: string | null;
+  camera_make?: string | null;
   /**
    * Camera Model
    */
-  camera_model: string | null;
+  camera_model?: string | null;
   /**
    * Focal Length
    */
-  focal_length: string | null;
+  focal_length?: string | null;
   /**
    * F Number
    */
-  f_number: number | null;
+  f_number?: number | null;
   /**
    * Exposure Time
    */
-  exposure_time: string | null;
+  exposure_time?: string | null;
   /**
    * Iso
    */
-  iso: number | null;
+  iso?: number | null;
   /**
    * Caption
    */
-  caption: string | null;
+  caption?: string | null;
   /**
    * Tags
    */
-  tags: unknown | null;
+  tags?: unknown | null;
   /**
    * Rating
    */
-  rating: number | null;
+  rating?: number | null;
 };
 
 /**
@@ -421,6 +456,87 @@ export type GetImageMetadataResponses = {
 
 export type GetImageMetadataResponse =
   GetImageMetadataResponses[keyof GetImageMetadataResponses];
+
+export type GetImageQualityImagesQualityImageIdGetData = {
+  body?: never;
+  path: {
+    /**
+     * Image Id
+     */
+    image_id: number;
+  };
+  query?: {
+    /**
+     * Metric
+     */
+    metric?: string;
+    /**
+     * Force Reanalyze
+     */
+    force_reanalyze?: boolean;
+  };
+  url: "/images/quality/{image_id}";
+};
+
+export type GetImageQualityImagesQualityImageIdGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetImageQualityImagesQualityImageIdGetError =
+  GetImageQualityImagesQualityImageIdGetErrors[keyof GetImageQualityImagesQualityImageIdGetErrors];
+
+export type GetImageQualityImagesQualityImageIdGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: ImageQualityResponse;
+};
+
+export type GetImageQualityImagesQualityImageIdGetResponse =
+  GetImageQualityImagesQualityImageIdGetResponses[keyof GetImageQualityImagesQualityImageIdGetResponses];
+
+export type AnalyzeBatchQualityData = {
+  /**
+   * Image Ids
+   */
+  body: Array<number>;
+  path?: never;
+  query?: {
+    /**
+     * Metric
+     */
+    metric?: string;
+    /**
+     * Force Reanalyze
+     */
+    force_reanalyze?: boolean;
+  };
+  url: "/images/quality/batch";
+};
+
+export type AnalyzeBatchQualityErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type AnalyzeBatchQualityError =
+  AnalyzeBatchQualityErrors[keyof AnalyzeBatchQualityErrors];
+
+export type AnalyzeBatchQualityResponses = {
+  /**
+   * Response Analyzebatchquality
+   * Successful Response
+   */
+  200: Array<ImageQualityResponse>;
+};
+
+export type AnalyzeBatchQualityResponse =
+  AnalyzeBatchQualityResponses[keyof AnalyzeBatchQualityResponses];
 
 export type GetAllBatchesData = {
   body?: never;
