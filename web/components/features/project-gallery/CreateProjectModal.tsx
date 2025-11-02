@@ -25,8 +25,8 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
 
   const createProject = useMutation(createBatchMutation());
 
-  // Re-added for validation
-  const isFormInvalid = !projectName.trim() || selectedImageIds.size === 0;
+  // Only validate project name
+  const isFormInvalid = !projectName.trim();
 
   const handleImageSelect = (imageId: number) => {
     setSelectedImageIds(prev => {
@@ -50,8 +50,6 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!projectName.trim()) return setError("Please provide a project name.");
-    // Re-added validation check
-    if (selectedImageIds.size === 0) return setError("Please select at least one image.");
     setError(null);
 
     createProject.mutate({
