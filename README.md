@@ -1,6 +1,8 @@
-# Pixal Judge: Image Clustering & Analysis Tool
-
-A full-stack application for uploading, managing, and visually clustering large image collections using machine learning.
+<div align="center">
+  <img src="assets/logo-with-branding.png" alt="PIXSORT Logo" width="400">
+  <h3>Self-Hosted Image Organization & Analysis Platform</h3>
+  <p>Take control of your photo library with a powerful self-hosted solution. Automatically cluster images by visual similarity, extract metadata, assess quality, and organize thousands of photos—all running on your own infrastructure with complete privacy.</p>
+</div>
 
 ## Demo with images of various types
 <div align="center">

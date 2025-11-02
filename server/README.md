@@ -1,7 +1,7 @@
 
-# Pixal Judge - Server (Backend)
+# PIXSORT - Server (Backend)
 
-This is the backend for the Pixal Judge application, a image processing and clustering API built with Python and FastAPI.
+This is the backend for the PIXSORT application, a image processing and clustering API built with Python and FastAPI.
 
 It handles all core logic, including file storage, database management, metadata extraction, machine learning feature embedding, and clustering analysis.
 
