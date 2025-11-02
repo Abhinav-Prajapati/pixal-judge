@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React from "react";
 
 import { useBatchViewStore } from "./components/useBatchViewStore";
 import { BatchToolBox } from "./components/BatchToolBox";
@@ -9,15 +9,8 @@ import { ImageDetailPanel } from "./components/ImageDetailPanel";
 
 import { useBatchData } from "@/hooks/useBatchData";
 import { useImageInteractions } from "@/hooks/useImageInteractions";
-import { client } from "@/client/client.gen";
 
 export default function BatchImagesPage() {
-	// Configure API client on mount (client-side only)
-	useEffect(() => {
-		const API_BASE_URL =
-			process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
-		client.setConfig({ baseUrl: API_BASE_URL });
-	}, []);
 
 	const {
 		batchId,

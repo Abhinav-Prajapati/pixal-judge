@@ -1,8 +1,6 @@
-import { client as baseClient } from "@/client/client.gen";
+// Re-export the configured client
+export { client } from "@/client/client.gen";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
-
-baseClient.setConfig({ baseUrl: API_BASE_URL });
-
-export const client = baseClient;
+// Re-export all SDK functions and types
+export * from "@/client/sdk.gen";
+export * from "@/client/types.gen";

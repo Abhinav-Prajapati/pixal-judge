@@ -22,4 +22,11 @@ export type CreateClientConfig<T extends DefaultClientOptions = ClientOptions> =
     override?: Config<DefaultClientOptions & T>,
   ) => Config<Required<DefaultClientOptions> & T>;
 
-export const client = createClient(createConfig<ClientOptions>());
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
+
+export const client = createClient(
+  createConfig<ClientOptions>({
+    baseUrl: API_BASE_URL,
+  })
+);
