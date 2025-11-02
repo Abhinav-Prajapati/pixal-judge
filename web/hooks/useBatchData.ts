@@ -1,8 +1,13 @@
+import type {
+  ImageResponse,
+  GroupAssociationResponse,
+} from "@/client/types.gen";
+
 import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+
 import { getBatchOptions } from "@/client/@tanstack/react-query.gen";
-import type { ImageResponse, GroupAssociationResponse } from "@/client/types.gen";
 
 /**
  * Fetches and processes all data related to a specific batch.
@@ -25,6 +30,7 @@ export function useBatchData() {
   // Memoize the flat list of all images
   const allImages = useMemo(() => {
     if (!batch?.image_associations) return [];
+
     return batch.image_associations.map((assoc) => assoc.image);
   }, [batch]);
 
@@ -35,22 +41,28 @@ export function useBatchData() {
     const clusters = batch.image_associations.reduce(
       (acc, assoc) => {
         const key = assoc.group_label ?? "Ungrouped";
+
         if (!acc[key]) acc[key] = { images: [], associations: [] };
         acc[key].images.push(assoc.image);
         acc[key].associations.push(assoc);
+
         return acc;
       },
-      {} as Record<string, { images: ImageResponse[]; associations: GroupAssociationResponse[] }>,
+      {} as Record<
+        string,
+        { images: ImageResponse[]; associations: GroupAssociationResponse[] }
+      >,
     );
 
     // Sort clusters by size (descending)
     const unsortedEntries = Object.entries(clusters);
-    unsortedEntries.sort(
-      ([, a], [, b]) => b.images.length - a.images.length,
-    );
+
+    unsortedEntries.sort(([, a], [, b]) => b.images.length - a.images.length);
 
     // Convert to simple format for compatibility
-    return unsortedEntries.map(([label, data]) => [label, data.images, data.associations] as const);
+    return unsortedEntries.map(
+      ([label, data]) => [label, data.images, data.associations] as const,
+    );
   }, [batch]);
 
   return {

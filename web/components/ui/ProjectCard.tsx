@@ -1,8 +1,10 @@
-import Link from 'next/link';
+import type { BatchResponse } from "@/client/types.gen";
+
+import Link from "next/link";
 import { Card, CardHeader, CardBody } from "@heroui/card";
-import { Calendar } from 'lucide-react';
-import type { BatchResponse } from '@/client/types.gen';
-import { siteConfig } from '@/config/site';
+import { Calendar } from "lucide-react";
+
+import { siteConfig } from "@/config/site";
 
 interface ProjectCardProps {
   project: BatchResponse;
@@ -15,8 +17,8 @@ export const ProjectCard = ({ project }: ProjectCardProps) => {
   return (
     <Link href={`/batches/${project.id}`}>
       <Card
-        isPressable
         isHoverable
+        isPressable
         className="bg-neutral-900 border border-neutral-800 hover:border-blue-500"
         radius="none"
       >
@@ -25,8 +27,12 @@ export const ProjectCard = ({ project }: ProjectCardProps) => {
             {/* Image previews */}
             {previewImages.map((assoc, index: number) => {
               const offset = index * 20;
-              const scale = 1 - (index * 0.05);
-              const brightnessClasses = ['brightness-100', 'brightness-90', 'brightness-75'];
+              const scale = 1 - index * 0.05;
+              const brightnessClasses = [
+                "brightness-100",
+                "brightness-90",
+                "brightness-75",
+              ];
 
               return (
                 <div
@@ -39,32 +45,35 @@ export const ProjectCard = ({ project }: ProjectCardProps) => {
                   }}
                 >
                   <img
-                    src={siteConfig.urls.imageThumbnail(assoc.image.id)}
                     alt="Project image preview"
                     className="w-full h-full object-cover"
+                    src={siteConfig.urls.imageThumbnail(assoc.image.id)}
                   />
                 </div>
               );
             })}
 
             {/* Placeholder slots if fewer than 4 images */}
-            {previewImages.length > 0 && Array.from({ length: Math.max(0, 4 - previewImages.length) }).map((_, i) => {
-              const index = previewImages.length + i;
-              const offset = index * 20;
-              const scale = 1 - (index * 0.05);
+            {previewImages.length > 0 &&
+              Array.from({ length: Math.max(0, 4 - previewImages.length) }).map(
+                (_, i) => {
+                  const index = previewImages.length + i;
+                  const offset = index * 20;
+                  const scale = 1 - index * 0.05;
 
-              return (
-                <div
-                  key={`placeholder-${index}`}
-                  className="absolute w-28 h-40 rounded-sm bg-neutral-800/50 border-2 border-dashed border-neutral-700"
-                  style={{
-                    left: `${offset}px`,
-                    transform: `scale(${scale})`,
-                    zIndex: 3 - index,
-                  }}
-                />
-              );
-            })}
+                  return (
+                    <div
+                      key={`placeholder-${index}`}
+                      className="absolute w-28 h-40 rounded-sm bg-neutral-800/50 border-2 border-dashed border-neutral-700"
+                      style={{
+                        left: `${offset}px`,
+                        transform: `scale(${scale})`,
+                        zIndex: 3 - index,
+                      }}
+                    />
+                  );
+                },
+              )}
 
             {/* Placeholder if no images */}
             {previewImages.length === 0 && (
@@ -77,10 +86,14 @@ export const ProjectCard = ({ project }: ProjectCardProps) => {
         <CardBody className="p-4">
           <div className="flex justify-between items-start">
             <div>
-              <p className="font-medium text-neutral-100">{project.batch_name}</p>
+              <p className="font-medium text-neutral-100">
+                {project.batch_name}
+              </p>
               <div className="flex items-center gap-2 mt-1">
                 <Calendar className="w-4 h-4 text-neutral-500" />
-                <p className="text-sm text-neutral-500">Contains {totalImages} images</p>
+                <p className="text-sm text-neutral-500">
+                  Contains {totalImages} images
+                </p>
               </div>
             </div>
           </div>

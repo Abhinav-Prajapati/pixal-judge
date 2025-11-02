@@ -1,4 +1,5 @@
 import { create } from "zustand";
+
 import { ImageResponse } from "@/client/types.gen";
 
 type ViewState = {

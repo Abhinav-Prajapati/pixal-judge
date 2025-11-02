@@ -1,19 +1,19 @@
-import { defineConfig } from '@hey-api/openapi-ts';
+import { defineConfig } from "@hey-api/openapi-ts";
 
 export default defineConfig({
-  input: './openapi.json',
+  input: "./openapi.json",
   output: {
-    format: 'prettier',
-    path: './client',
+    format: "prettier",
+    path: "./client",
   },
   plugins: [
-    '@hey-api/schemas',
+    "@hey-api/schemas",
     {
-      name: '@hey-api/typescript',
+      name: "@hey-api/typescript",
     },
     {
-      name: '@hey-api/sdk',
+      name: "@hey-api/sdk",
     },
-    '@tanstack/react-query',
+    "@tanstack/react-query",
   ],
 });

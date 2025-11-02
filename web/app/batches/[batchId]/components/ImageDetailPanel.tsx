@@ -1,12 +1,13 @@
 "use client";
 
-import React from "react";
-import { useQuery } from "@tanstack/react-query";
 import type {
   GetImageMetadataError,
   ImageResponse,
   Metadata,
 } from "@/client/types.gen";
+
+import React from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@heroui/react";
 import {
   X,
@@ -21,6 +22,7 @@ import {
   Text,
   Star,
 } from "lucide-react";
+
 import { siteConfig } from "@/config/site";
 import { getImageMetadata } from "@/client";
 
@@ -36,9 +38,10 @@ function MetadataRow({
   if (value === null || value === undefined || value === "") {
     return null;
   }
+
   return (
     <div className="flex items-start gap-3">
-      <Icon size={14} className="text-default-500 flex-shrink-0 mt-0.5" />
+      <Icon className="text-default-500 flex-shrink-0 mt-0.5" size={14} />
       <div className="flex flex-col">
         <span className="text-xs text-default-600">{label}</span>
         <span className="text-sm text-default-900 break-all">
@@ -52,9 +55,9 @@ function MetadataRow({
 function MetadataDisplay({ metadata }: { metadata: Metadata }) {
   const shotAtFormatted = metadata.shot_at
     ? new Date(metadata.shot_at).toLocaleString(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    })
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
     : null;
 
   const ratingFormatted = metadata.rating
@@ -101,7 +104,7 @@ function MetadataDisplay({ metadata }: { metadata: Metadata }) {
 
       {metadata.caption && (
         <div className="flex items-start gap-3">
-          <Text size={14} className="text-default-500 flex-shrink-0 mt-0.5" />
+          <Text className="text-default-500 flex-shrink-0 mt-0.5" size={14} />
           <div className="flex flex-col">
             <span className="text-xs text-default-600">Caption</span>
             <p className="text-sm text-default-900 break-words whitespace-pre-wrap">
@@ -134,6 +137,7 @@ export function ImageDetailPanel({
         path: { image_id: image.id },
         throwOnError: true,
       });
+
       return response.data;
     },
     enabled: !!image.id,
@@ -150,11 +154,11 @@ export function ImageDetailPanel({
           {image.original_filename}
         </h2>
         <Button
-          variant="light"
-          color="default"
-          onPress={onClose}
           isIconOnly
           aria-label="Close panel"
+          color="default"
+          variant="light"
+          onPress={onClose}
         >
           <X size={20} />
         </Button>
@@ -165,9 +169,9 @@ export function ImageDetailPanel({
         {/* Image on top */}
         <div className="bg-black p-1">
           <img
-            src={imageUrl}
             alt={image.filename}
             className="w-full h-auto object-contain max-h-96"
+            src={imageUrl}
           />
         </div>
 

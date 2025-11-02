@@ -2,23 +2,20 @@
 
 import React, { useCallback } from "react";
 import { Button, ButtonGroup } from "@heroui/react";
-import { Grid, LayoutGrid, Trash2, X } from "lucide-react";
+import { Grid, LayoutGrid, Trash2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import toast from "react-hot-toast";
 
 import { useBatchViewStore } from "./useBatchViewStore";
+
 import { useImageSelectionStore } from "@/stores/useImageSelectionStore";
 import {
   removeImagesFromBatchMutation,
   getBatchQueryKey,
 } from "@/client/@tanstack/react-query.gen";
 
-export function NavToolBar({
-  allImagesCount,
-}: {
-  allImagesCount: number;
-}) {
+export function NavToolBar({ allImagesCount }: { allImagesCount: number }) {
   const { view, setView } = useBatchViewStore();
   const { selectedImageIds, clearSelection } = useImageSelectionStore();
   const queryClient = useQueryClient();
@@ -31,7 +28,8 @@ export function NavToolBar({
     ...removeImagesFromBatchMutation(),
     onSuccess: () => {
       toast.success(
-        `${selectedCount} ${selectedCount === 1 ? "image" : "images"
+        `${selectedCount} ${
+          selectedCount === 1 ? "image" : "images"
         } removed from batch.`,
       );
       // Refetch the batch data to show the images are gone
@@ -52,6 +50,7 @@ export function NavToolBar({
     if (!batchId || selectedCount === 0) return;
 
     const imageIds = Array.from(selectedImageIds);
+
     removeMutation.mutate({
       path: { batch_id: batchId },
       body: { image_ids: imageIds },
@@ -65,26 +64,27 @@ export function NavToolBar({
         {selectedCount > 0 && (
           <>
             <span className="text-sm font-medium text-default-600 px-2">
-              {selectedCount} {selectedCount === 1 ? "image" : "images"} selected
+              {selectedCount} {selectedCount === 1 ? "image" : "images"}{" "}
+              selected
             </span>
             <Button
-              size="sm"
-              variant="light"
               color="danger"
-              onPress={handleRemoveSelected}
               isLoading={removeMutation.isPending}
-              startContent={<Trash2 size={16} />}
               radius="none"
+              size="sm"
+              startContent={<Trash2 size={16} />}
+              variant="light"
+              onPress={handleRemoveSelected}
             >
               Remove
             </Button>
             <Button
-              size="sm"
-              variant="bordered"
-              onPress={clearSelection}
               aria-label="Clear selection"
               className="text-default-500"
               radius="none"
+              size="sm"
+              variant="bordered"
+              onPress={clearSelection}
             >
               Deselect
             </Button>
@@ -94,20 +94,20 @@ export function NavToolBar({
 
       <ButtonGroup>
         <Button
-          variant={view === "all" ? "solid" : "bordered"}
           color="primary"
-          onPress={() => setView("all")}
-          startContent={<Grid size={18} />}
           radius="none"
+          startContent={<Grid size={18} />}
+          variant={view === "all" ? "solid" : "bordered"}
+          onPress={() => setView("all")}
         >
           All Images ({allImagesCount})
         </Button>
         <Button
-          variant={view === "grouped" ? "solid" : "bordered"}
           color="primary"
-          onPress={() => setView("grouped")}
-          startContent={<LayoutGrid size={18} />}
           radius="none"
+          startContent={<LayoutGrid size={18} />}
+          variant={view === "grouped" ? "solid" : "bordered"}
+          onPress={() => setView("grouped")}
         >
           Grouped View
         </Button>

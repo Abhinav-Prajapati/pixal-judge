@@ -1,11 +1,12 @@
 "use client";
 
-import { type ImageResponse } from "@/client/types.gen";
 import Image from "next/image";
 import React from "react";
-import { siteConfig } from "@/config/site";
 import { Image as ImageIcon, CheckCircle2, Circle } from "lucide-react";
 import clsx from "clsx";
+
+import { siteConfig } from "@/config/site";
+import { type ImageResponse } from "@/client/types.gen";
 
 export function ImageCard({
   image,
@@ -40,19 +41,16 @@ export function ImageCard({
         "cursor-pointer transition-all duration-150 ease-in-out",
         isSelected
           ? "border-blue-500 border-1 shadow-lg"
-          : "border-neutral-200 dark:border-neutral-700"
+          : "border-neutral-200 dark:border-neutral-700",
       )}
     >
-      <div
-        className="relative flex-grow min-h-0"
-        onClick={handleImageClick}
-      >
+      <div className="relative flex-grow min-h-0" onClick={handleImageClick}>
         <Image
-          src={siteConfig.urls.imageThumbnail(image.id)}
-          alt={image.original_filename}
           fill
-          sizes="(max-width: 640px) 50vw, (max-width: 768px) 25vw, 16vw"
+          alt={image.original_filename}
           className="object-contain p-1"
+          sizes="(max-width: 640px) 50vw, (max-width: 768px) 25vw, 16vw"
+          src={siteConfig.urls.imageThumbnail(image.id)}
         />
       </div>
 
@@ -65,7 +63,10 @@ export function ImageCard({
           className="truncate text-center text-xs text-neutral-600 dark:text-neutral-400"
           title={image.original_filename}
         >
-          <ImageIcon className="inline-block mr-1 align-text-bottom" size={14} />
+          <ImageIcon
+            className="inline-block mr-1 align-text-bottom"
+            size={14}
+          />
           {image.original_filename}
         </p>
       </div>
@@ -77,23 +78,21 @@ export function ImageCard({
       >
         {isSelected ? (
           <CheckCircle2
+            className="text-white bg-blue-500 rounded-full shadow"
             size={18}
             strokeWidth={3}
-            className="text-white bg-blue-500 rounded-full shadow"
           />
         ) : (
           <Circle
+            className="text-neutral-500 bg-white/70 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
             size={18}
             strokeWidth={2}
-            className="text-neutral-500 bg-white/70 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
           />
         )}
       </div>
 
       {/* Hover overlay - this is just visual */}
-      <div
-        className="absolute inset-0 bg-black/10 dark:bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"
-      />
+      <div className="absolute inset-0 bg-black/10 dark:bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
     </div>
   );
 }

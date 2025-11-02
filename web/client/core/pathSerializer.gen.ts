@@ -79,6 +79,7 @@ export const serializeArrayParam = ({
     const joinedValues = (
       allowReserved ? value : value.map((v) => encodeURIComponent(v as string))
     ).join(separatorArrayNoExplode(style));
+
     switch (style) {
       case "label":
         return `.${joinedValues}`;
@@ -105,6 +106,7 @@ export const serializeArrayParam = ({
       });
     })
     .join(separator);
+
   return style === "label" || style === "matrix"
     ? separator + joinedValues
     : joinedValues;
@@ -145,6 +147,7 @@ export const serializeObjectParam = ({
 
   if (style !== "deepObject" && !explode) {
     let values: string[] = [];
+
     Object.entries(value).forEach(([key, v]) => {
       values = [
         ...values,
@@ -153,6 +156,7 @@ export const serializeObjectParam = ({
       ];
     });
     const joinedValues = values.join(",");
+
     switch (style) {
       case "form":
         return `${name}=${joinedValues}`;
@@ -175,6 +179,7 @@ export const serializeObjectParam = ({
       }),
     )
     .join(separator);
+
   return style === "label" || style === "matrix"
     ? separator + joinedValues
     : joinedValues;

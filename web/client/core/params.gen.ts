@@ -111,6 +111,7 @@ export const buildClientParams = (
       if (config.key) {
         const field = map.get(config.key)!;
         const name = field.map || config.key;
+
         (params[field.in] as Record<string, unknown>)[name] = arg;
       } else {
         params.body = arg;
@@ -121,6 +122,7 @@ export const buildClientParams = (
 
         if (field) {
           const name = field.map || key;
+
           (params[field.in] as Record<string, unknown>)[name] = value;
         } else {
           const extra = extraPrefixes.find(([prefix]) =>
@@ -129,6 +131,7 @@ export const buildClientParams = (
 
           if (extra) {
             const [prefix, slot] = extra;
+
             (params[slot] as Record<string, unknown>)[
               key.slice(prefix.length)
             ] = value;

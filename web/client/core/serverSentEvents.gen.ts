@@ -133,6 +133,7 @@ export const createSseClient = <TData = unknown>({
           signal,
         };
         let request = new Request(url, requestInit);
+
         if (onRequest) {
           request = await onRequest(url, requestInit);
         }
@@ -167,10 +168,12 @@ export const createSseClient = <TData = unknown>({
         try {
           while (true) {
             const { done, value } = await reader.read();
+
             if (done) break;
             buffer += value;
 
             const chunks = buffer.split("\n\n");
+
             buffer = chunks.pop() ?? "";
 
             for (const chunk of chunks) {
@@ -190,6 +193,7 @@ export const createSseClient = <TData = unknown>({
                     line.replace(/^retry:\s*/, ""),
                     10,
                   );
+
                   if (!Number.isNaN(parsed)) {
                     retryDelay = parsed;
                   }
@@ -201,6 +205,7 @@ export const createSseClient = <TData = unknown>({
 
               if (dataLines.length) {
                 const rawData = dataLines.join("\n");
+
                 try {
                   data = JSON.parse(rawData);
                   parsedJson = true;
@@ -253,6 +258,7 @@ export const createSseClient = <TData = unknown>({
           retryDelay * 2 ** (attempt - 1),
           sseMaxRetryDelay ?? 30000,
         );
+
         await sleep(backoff);
       }
     }
