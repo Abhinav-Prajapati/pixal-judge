@@ -20,6 +20,7 @@ import {
   uploadAndAddImagesToBatch,
   analyzeBatch,
   updateGroupsInBatch,
+  rankGroupImages,
   readRootGet,
 } from "../sdk.gen";
 import { type UseMutationOptions, queryOptions } from "@tanstack/react-query";
@@ -62,6 +63,9 @@ import type {
   UpdateGroupsInBatchData,
   UpdateGroupsInBatchError,
   UpdateGroupsInBatchResponse,
+  RankGroupImagesData,
+  RankGroupImagesError,
+  RankGroupImagesResponse,
   ReadRootGetData,
 } from "../types.gen";
 import { client } from "../client.gen";
@@ -386,7 +390,7 @@ export const getBatchQueryKey = (options: Options<GetBatchData>) =>
 
 /**
  * Get Batch Details
- * Returns details for a specific batch.
+ * Returns details for a specific batch with images sorted by quality_rank within groups.
  */
 export const getBatchOptions = (options: Options<GetBatchData>) => {
   return queryOptions({
@@ -561,6 +565,34 @@ export const updateGroupsInBatchMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await updateGroupsInBatch({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Rank Group Images
+ * Ranks images within a specific group by quality score.
+ */
+export const rankGroupImagesMutation = (
+  options?: Partial<Options<RankGroupImagesData>>,
+): UseMutationOptions<
+  RankGroupImagesResponse,
+  RankGroupImagesError,
+  Options<RankGroupImagesData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    RankGroupImagesResponse,
+    RankGroupImagesError,
+    Options<RankGroupImagesData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await rankGroupImages({
         ...options,
         ...fnOptions,
         throwOnError: true,

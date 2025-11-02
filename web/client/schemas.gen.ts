@@ -179,6 +179,40 @@ export const GroupAssociationResponseSchema = {
       ],
       title: "Group Label",
     },
+    quality_rank: {
+      anyOf: [
+        {
+          type: "integer",
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "Quality Rank",
+    },
+    ranked_at: {
+      anyOf: [
+        {
+          type: "string",
+          format: "date-time",
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "Ranked At",
+    },
+    ranking_metric: {
+      anyOf: [
+        {
+          type: "string",
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "Ranking Metric",
+    },
   },
   type: "object",
   required: ["image", "group_label"],

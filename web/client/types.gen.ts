@@ -128,6 +128,18 @@ export type GroupAssociationResponse = {
    * Group Label
    */
   group_label: string | null;
+  /**
+   * Quality Rank
+   */
+  quality_rank?: number | null;
+  /**
+   * Ranked At
+   */
+  ranked_at?: string | null;
+  /**
+   * Ranking Metric
+   */
+  ranking_metric?: string | null;
 };
 
 /**
@@ -829,6 +841,47 @@ export type UpdateGroupsInBatchResponses = {
 
 export type UpdateGroupsInBatchResponse =
   UpdateGroupsInBatchResponses[keyof UpdateGroupsInBatchResponses];
+
+export type RankGroupImagesData = {
+  body?: never;
+  path: {
+    /**
+     * Batch Id
+     */
+    batch_id: number;
+    /**
+     * Group Label
+     */
+    group_label: string;
+  };
+  query?: {
+    /**
+     * Metric
+     */
+    metric?: string;
+  };
+  url: "/batches/{batch_id}/groups/{group_label}/rank";
+};
+
+export type RankGroupImagesErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type RankGroupImagesError =
+  RankGroupImagesErrors[keyof RankGroupImagesErrors];
+
+export type RankGroupImagesResponses = {
+  /**
+   * Successful Response
+   */
+  200: BatchResponse;
+};
+
+export type RankGroupImagesResponse =
+  RankGroupImagesResponses[keyof RankGroupImagesResponses];
 
 export type ReadRootGetData = {
   body?: never;

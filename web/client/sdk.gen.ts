@@ -59,6 +59,9 @@ import type {
   UpdateGroupsInBatchData,
   UpdateGroupsInBatchResponses,
   UpdateGroupsInBatchErrors,
+  RankGroupImagesData,
+  RankGroupImagesResponses,
+  RankGroupImagesErrors,
   ReadRootGetData,
   ReadRootGetResponses,
 } from "./types.gen";
@@ -287,7 +290,7 @@ export const deleteBatch = <ThrowOnError extends boolean = false>(
 
 /**
  * Get Batch Details
- * Returns details for a specific batch.
+ * Returns details for a specific batch with images sorted by quality_rank within groups.
  */
 export const getBatch = <ThrowOnError extends boolean = false>(
   options: Options<GetBatchData, ThrowOnError>,
@@ -426,6 +429,23 @@ export const updateGroupsInBatch = <ThrowOnError extends boolean = false>(
       "Content-Type": "application/json",
       ...options.headers,
     },
+  });
+};
+
+/**
+ * Rank Group Images
+ * Ranks images within a specific group by quality score.
+ */
+export const rankGroupImages = <ThrowOnError extends boolean = false>(
+  options: Options<RankGroupImagesData, ThrowOnError>,
+) => {
+  return (options.client ?? client).post<
+    RankGroupImagesResponses,
+    RankGroupImagesErrors,
+    ThrowOnError
+  >({
+    url: "/batches/{batch_id}/groups/{group_label}/rank",
+    ...options,
   });
 };
 

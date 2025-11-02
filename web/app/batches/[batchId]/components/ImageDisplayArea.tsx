@@ -1,14 +1,12 @@
-"use client";
-
-import React, { useState } from "react";
-import type { ImageResponse } from "@/client/types.gen";
+import React from "react";
+import type { ImageResponse, GroupAssociationResponse } from "@/client/types.gen";
 import { useBatchViewStore } from "./useBatchViewStore";
 import { NavToolBar } from "./NavToolbar";
 import { ImageGrid } from "./ImageGrid";
-import { useImageQuality } from "@/hooks/useImageQuality";
+import { useGroupRanking } from "@/hooks/useGroupRanking";
 import { Button } from "@heroui/react";
 
-type ClusterEntry = [string, ImageResponse[]];
+type ClusterEntry = readonly [string, ImageResponse[], GroupAssociationResponse[]];
 
 export function ImageDisplayArea({
   allImages,
@@ -16,33 +14,26 @@ export function ImageDisplayArea({
   onImageClick,
   onImageSelect,
   selectedImageIds,
+  batchId,
+  onRankComplete,
 }: {
   allImages: ImageResponse[];
   clusterEntries: ClusterEntry[];
   onImageClick: (image: ImageResponse) => void;
   onImageSelect: (image: ImageResponse) => void;
   selectedImageIds: Set<number>;
+  batchId: number;
+  onRankComplete: () => void;
 }) {
   const { view } = useBatchViewStore();
-  const { analyzeQuality } = useImageQuality();
-  const [sortedGroups, setSortedGroups] = useState<Map<string, ImageResponse[]>>(new Map());
-  const [analyzingGroup, setAnalyzingGroup] = useState<string | null>(null);
+  const { rankGroup, rankingGroup } = useGroupRanking();
 
-  const rankGroup = async (clusterId: string, images: ImageResponse[]) => {
-    setAnalyzingGroup(clusterId);
+  const handleRankGroup = async (groupLabel: string) => {
     try {
-      const imageIds = images.map(img => img.id);
-      const results = await analyzeQuality(imageIds);
-
-      const sorted = [...images].sort((a, b) => {
-        const scoreA = results.find(r => r.image_id === a.id)?.quality_score ?? 0;
-        const scoreB = results.find(r => r.image_id === b.id)?.quality_score ?? 0;
-        return scoreB - scoreA;
-      });
-
-      setSortedGroups(prev => new Map(prev).set(clusterId, sorted));
-    } finally {
-      setAnalyzingGroup(null);
+      await rankGroup(batchId, groupLabel);
+      await onRankComplete(); // Refetch batch data to get updated rankings
+    } catch (error) {
+      console.error("Failed to rank group:", error);
     }
   };
 
@@ -63,9 +54,9 @@ export function ImageDisplayArea({
         )}
         {view === "grouped" && (
           <div className="flex flex-col gap-6">
-            {clusterEntries.map(([clusterId, images]) => {
-              const sortedImages = sortedGroups.get(clusterId) || images;
-              const isRanked = sortedGroups.has(clusterId);
+            {clusterEntries.map(([clusterId, images, associations]) => {
+              // Check if group is ranked (any association has quality_rank)
+              const isRanked = associations.some(assoc => assoc.quality_rank !== null);
 
               return (
                 <section key={clusterId}>
@@ -83,8 +74,8 @@ export function ImageDisplayArea({
                       size="sm"
                       variant="flat"
                       color={isRanked ? "success" : "primary"}
-                      isLoading={analyzingGroup === clusterId}
-                      onPress={() => rankGroup(clusterId, images)}
+                      isLoading={rankingGroup === clusterId}
+                      onPress={() => handleRankGroup(clusterId)}
                       radius="none"
                       className="ml-4"
                     >
@@ -92,7 +83,7 @@ export function ImageDisplayArea({
                     </Button>
                   </div>
                   <ImageGrid
-                    images={sortedImages}
+                    images={images}
                     onImageClick={onImageClick}
                     onImageSelect={onImageSelect}
                     selectedImageIds={selectedImageIds}

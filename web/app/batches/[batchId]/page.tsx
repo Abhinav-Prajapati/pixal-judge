@@ -24,6 +24,7 @@ export default function BatchImagesPage() {
 		isLoading,
 		isError,
 		error,
+		refetch,
 	} = useBatchData();
 
 	const {
@@ -102,6 +103,8 @@ export default function BatchImagesPage() {
 					onImageClick={showImageDetails}
 					onImageSelect={handleImageSelect}
 					selectedImageIds={selectedImageIds}
+					batchId={batchId}
+					onRankComplete={() => refetch()}
 				/>
 
 				{/* Use state from the store */}
