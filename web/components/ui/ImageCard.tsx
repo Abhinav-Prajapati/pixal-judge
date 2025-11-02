@@ -12,19 +12,25 @@ export function ImageCard({
   isSelected,
   onDetailClick,
   onSelectToggle,
+  hasAnySelection,
 }: {
   image: ImageResponse;
   isSelected: boolean;
   onDetailClick: (image: ImageResponse) => void;
   onSelectToggle: (image: ImageResponse) => void;
+  hasAnySelection?: boolean;
 }) {
   const handleSelectClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onSelectToggle(image);
   };
 
-  const handleDetailClick = () => {
-    onDetailClick(image);
+  const handleImageClick = () => {
+    if (hasAnySelection) {
+      onSelectToggle(image);
+    } else {
+      onDetailClick(image);
+    }
   };
 
   return (
@@ -39,7 +45,7 @@ export function ImageCard({
     >
       <div
         className="relative flex-grow min-h-0"
-        onClick={handleDetailClick}
+        onClick={handleImageClick}
       >
         <Image
           src={siteConfig.urls.imageThumbnail(image.id)}
@@ -50,10 +56,10 @@ export function ImageCard({
         />
       </div>
 
-      {/* Filename container - Click opens detail panel */}
+      {/* Filename container - Click opens detail panel or toggles selection */}
       <div
         className="w-full flex-shrink-0 px-1 py-1 border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50"
-        onClick={handleDetailClick}
+        onClick={handleImageClick}
       >
         <p
           className="truncate text-center text-xs text-neutral-600 dark:text-neutral-400"
@@ -87,7 +93,6 @@ export function ImageCard({
       {/* Hover overlay - this is just visual */}
       <div
         className="absolute inset-0 bg-black/10 dark:bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"
-        onClick={handleDetailClick}
       />
     </div>
   );

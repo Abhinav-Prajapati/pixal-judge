@@ -48,6 +48,7 @@ export function ImageGrid({
           isSelected={selectedImageIds.has(image.id)}
           onDetailClick={onImageClick}
           onSelectToggle={onImageSelect}
+          hasAnySelection={selectedImageIds.size > 0}
         />
       ))}
     </div>
