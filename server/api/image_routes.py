@@ -1,6 +1,5 @@
 import logging
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, BackgroundTasks
-from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List
 from pathlib import Path
@@ -12,6 +11,7 @@ from .schemas import ImageResponse, Metadata
 from .tasks import generate_thumbnail_task, generate_embedding_task
 from database.models import Image as ImageModel
 from config import THUMB_DIR
+from utils.helpers import get_image_or_404, get_file_response, queue_multiple_image_processing
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/images", tags=["Images"])
@@ -22,21 +22,14 @@ def upload_images(
     db: Session = Depends(get_db), 
     files: List[UploadFile] = File(...)
 ):
-    """
-    Uploads one or more image files. For each new image, it queues background
-    tasks for metadata extraction, thumbnail generation, and feature embedding.
-    """
+    """Uploads one or more image files and processes them in the background."""
     results = image_service.process_new_uploads(db=db, files=files)
     
     if not results:
         raise HTTPException(status_code=400, detail="No images were processed successfully.")
     
-    for res in results:
-        if isinstance(res, ImageModel):
-            image_id = res.id
-            logger.info(f"Queuing background tasks for NEW image_id: {image_id}")
-            background_tasks.add_task(generate_thumbnail_task, image_id)
-            background_tasks.add_task(generate_embedding_task, image_id)
+    new_images = [res for res in results if isinstance(res, ImageModel)]
+    queue_multiple_image_processing(background_tasks, new_images, generate_thumbnail_task, generate_embedding_task)
             
     return results
 
@@ -46,25 +39,17 @@ def get_all_images(db: Session = Depends(get_db)):
 
 @router.get("/{image_id}", operation_id="getImageFile")
 def get_image_file(image_id: int, db: Session = Depends(get_db)):
-    image = crud_image.get(db, image_id=image_id)
-    if not image:
-        raise HTTPException(status_code=404, detail="Image not found.")
-    image_path = Path(image.file_path)
-    if not image_path.is_file():
-        raise HTTPException(status_code=404, detail="Image file not found on disk.")
-    return FileResponse(image_path)
+    """Returns the full-size image file."""
+    image = get_image_or_404(db, image_id)
+    return get_file_response(Path(image.file_path), "Image")
 
 @router.get("/thumbnail/{image_id}", operation_id="getImageThumbnail")
 def get_thumbnail_file(image_id: int, db: Session = Depends(get_db)):
-    image = crud_image.get(db, image_id=image_id)
-    if not image:
-        raise HTTPException(status_code=404, detail="Image not found.")
+    """Returns the thumbnail image file."""
+    image = get_image_or_404(db, image_id)
     if not image.has_thumbnail:
         raise HTTPException(status_code=404, detail="Thumbnail does not exist for this image.")
-    thumb_path = THUMB_DIR / image.filename
-    if not thumb_path.is_file():
-        raise HTTPException(status_code=404, detail="Thumbnail file not found on disk.")
-    return FileResponse(thumb_path)
+    return get_file_response(THUMB_DIR / image.filename, "Thumbnail")
 
 @router.delete("/{image_id}", operation_id="deleteImage")
 def delete_image(image_id: int, db: Session = Depends(get_db)):
@@ -78,28 +63,6 @@ def delete_image(image_id: int, db: Session = Depends(get_db)):
 
 @router.get("/metadata/{image_id}", response_model=Metadata, operation_id="getImageMetadata")
 def get_image_metadata(image_id: int, db: Session = Depends(get_db)):
-    
-    image = crud_image.get(db, image_id=image_id)
-
-    if not image:
-        raise HTTPException(status_code=404, detail="Image not found.")
-
-    metadata = Metadata(
-        width=image.width,
-        height=image.height,
-        orientation=image.orientation,
-        shot_at=image.shot_at,
-        latitude=image.latitude,
-        longitude=image.longitude,
-        camera_make=image.camera_make,
-        camera_model=image.camera_model,
-        focal_length=image.focal_length,
-        f_number=image.f_number,
-        exposure_time=image.exposure_time,
-        iso=image.iso,
-        caption=image.caption,
-        tags=image.tags,
-        rating=image.rating
-    )
-
-    return metadata
+    """Returns detailed EXIF metadata for an image."""
+    image = get_image_or_404(db, image_id)
+    return Metadata.model_validate(image)
