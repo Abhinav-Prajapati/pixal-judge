@@ -4,11 +4,11 @@ const apiBaseUrl =
 export type SiteConfig = typeof siteConfig;
 
 export const siteConfig = {
-  name: "Next.js + HeroUI",
-  description: "Make beautiful websites regardless of your design experience.",
+  name: "PIXSORT",
+  description: "An image curation tool.",
   urls: {
     apiBase: apiBaseUrl,
-    projectDetails: (id: number | string) => `/batches/${id}`, // Or `/projects/${id}`
+    projectDetails: (id: number | string) => `/batches/${id}`,
     imageThumbnail: (id: number | string) =>
       `${apiBaseUrl}/images/thumbnail/${id}`,
     image: (id: number | string) => `${apiBaseUrl}/images/${id}`,

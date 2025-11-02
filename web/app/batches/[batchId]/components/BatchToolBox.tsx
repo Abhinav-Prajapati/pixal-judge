@@ -16,6 +16,7 @@ import {
 import toast from "react-hot-toast";
 import { ArrowLeft, Pencil, Trash2, UploadCloud } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 import {
   analyzeBatchMutation,
@@ -294,7 +295,8 @@ export function BatchToolBox({ batchId }: ClusteringToolboxProps) {
         >
           <ArrowLeft />
         </Button>
-        <h2 className="flex-grow px-3 text-base font-semibold text-default-700">
+        <Image alt="Logo" height={24} src="/logo.png" width={32} />
+        <h2 className="flex-grow px-2 text-base font-semibold text-default-700">
           {batch?.batch_name}
         </h2>
       </div>

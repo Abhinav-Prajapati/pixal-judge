@@ -2,6 +2,7 @@
 import { Button } from "@heroui/button";
 import { Input, Spinner } from "@heroui/react";
 import { Plus, SlidersHorizontal } from "lucide-react";
+import Image from "next/image";
 
 import { useProjectGallery } from "@/hooks/useProjectGallery";
 import { ProjectCard } from "@/components/ui/ProjectCard";
@@ -22,6 +23,19 @@ export default function ProjectsPage() {
       <CreateProjectModal isOpen={isModalOpen} onClose={onCloseModal} />
       <div className="bg-black min-h-screen text-white font-sans p-8">
         <div className="max-w-7xl mx-auto">
+          {/* Logo and App Name */}
+          <div className="flex items-center gap-3 mb-8">
+            <Image
+              alt="PIXSORT Logo"
+              height={40}
+              src="/logo.png"
+              width={40}
+            />
+            <h2 className="text-xl font-semibold text-neutral-300">
+              PIXSORT
+            </h2>
+          </div>
+
           <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold text-neutral-50">
