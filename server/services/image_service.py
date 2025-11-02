@@ -2,12 +2,15 @@ import logging
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
 from typing import List, Union
+from datetime import datetime, timezone
 
 from crud import crud_image
 from utils.file_handling import save_uploaded_file, _calculate_file_hash, delete_image_files
 from processing.metadata_extraction import extract_exif_data
+from processing.quality_assessment import ImageQualityAnalyzer
 from database.models import Image
 from api.schemas import ImageResponse
+from utils.helpers import get_image_or_404
 
 logger = logging.getLogger(__name__)
 
@@ -52,3 +55,42 @@ def delete_image_and_files(db: Session, image_id: int) -> Image:
         raise IOError("Failed to delete image files from disk.")
     crud_image.remove(db, image=image)
     return image
+
+def analyze_image_quality(
+    db: Session,
+    image_id: int,
+    metric: str = 'clipiqa+',
+    force_reanalyze: bool = False
+) -> float:
+    """
+    Analyze image quality using PyIQA. Returns cached score if available.
+    
+    Args:
+        db: Database session
+        image_id: ID of image to analyze
+        metric: PyIQA metric to use (clipiqa+, brisque, niqe, musiq, cnniqa)
+        force_reanalyze: If True, recalculate even if score exists
+    
+    Returns:
+        Quality score (float)
+    """
+    image = get_image_or_404(db, image_id)
+    
+    if not force_reanalyze and image.quality_score is not None:
+        if image.quality_metric == metric:
+            logger.info(f"Returning cached quality score for image {image_id}")
+            return image.quality_score
+    
+    logger.info(f"Analyzing quality for image {image_id} with metric {metric}")
+    analyzer = ImageQualityAnalyzer(metric)
+    score = analyzer.analyze(image.file_path)
+    
+    image.quality_score = score
+    image.quality_metric = metric
+    image.quality_analyzed_at = datetime.now(timezone.utc)
+    
+    db.commit()
+    db.refresh(image)
+    
+    logger.info(f"Stored quality score {score:.4f} for image {image_id}")
+    return score

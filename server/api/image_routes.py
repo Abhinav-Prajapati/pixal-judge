@@ -7,7 +7,7 @@ from pathlib import Path
 from database.database import get_db
 from services import image_service
 from crud import crud_image
-from .schemas import ImageResponse, Metadata
+from .schemas import ImageResponse, Metadata, ImageQualityResponse, ImageQualityRequest
 from .tasks import generate_thumbnail_task, generate_embedding_task
 from database.models import Image as ImageModel
 from config import THUMB_DIR
@@ -66,3 +66,65 @@ def get_image_metadata(image_id: int, db: Session = Depends(get_db)):
     """Returns detailed EXIF metadata for an image."""
     image = get_image_or_404(db, image_id)
     return Metadata.model_validate(image)
+
+@router.get("/quality/{image_id}", response_model=ImageQualityResponse)
+async def get_image_quality(
+    image_id: int,
+    metric: str = "brisque",  # Default metric
+    force_reanalyze: bool = False,
+    db: Session = Depends(get_db),
+):
+    """
+    Get or calculate image quality score.
+    
+    - Returns cached score if available and metric matches
+    - Calculates new score if not cached or force_reanalyze=True
+    - Supported metrics: liqe, clipiqa+, brisque, niqe, musiq, cnniqa
+    """
+    try:
+        score = image_service.analyze_image_quality(db, image_id, metric, force_reanalyze)
+        image = get_image_or_404(db, image_id)
+        
+        return ImageQualityResponse(
+            image_id=image.id,
+            quality_score=score,
+            quality_metric=image.quality_metric,
+            analyzed_at=image.quality_analyzed_at,
+            file_name=image.original_filename
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error analyzing image quality: {e}")
+        raise HTTPException(status_code=500, detail="Failed to analyze image quality")
+
+@router.post("/quality/batch", response_model=List[ImageQualityResponse], operation_id="analyzeBatchQuality")
+def analyze_batch_quality(
+    image_ids: List[int],
+    metric: str = 'liqe',
+    force_reanalyze: bool = False,
+    db: Session = Depends(get_db)
+):
+    """Analyze quality for multiple images at once."""
+    results = []
+    errors = []
+    
+    for image_id in image_ids:
+        try:
+            score = image_service.analyze_image_quality(db, image_id, metric, force_reanalyze)
+            image = get_image_or_404(db, image_id)
+            results.append(ImageQualityResponse(
+                image_id=image.id,
+                quality_score=score,
+                quality_metric=image.quality_metric,
+                analyzed_at=image.quality_analyzed_at,
+                file_name=image.original_filename
+            ))
+        except Exception as e:
+            errors.append(f"Image {image_id}: {str(e)}")
+            logger.error(f"Error analyzing image {image_id}: {e}")
+    
+    if errors and not results:
+        raise HTTPException(status_code=500, detail=f"Failed to analyze all images: {'; '.join(errors)}")
+    
+    return results

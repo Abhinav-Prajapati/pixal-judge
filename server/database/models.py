@@ -50,6 +50,11 @@ class Image(Base):
     tags = Column(JSONB, nullable=True) 
     rating = Column(Integer, nullable=True) 
 
+    # Image Quality Assessment
+    quality_score = Column(Float, nullable=True)
+    quality_metric = Column(String(50), nullable=True)
+    quality_analyzed_at = Column(DateTime(timezone=True), nullable=True)
+
     batch_associations = relationship("ImageBatchAssociation", back_populates="image")
     
     batches = association_proxy(

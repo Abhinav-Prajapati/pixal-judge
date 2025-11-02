@@ -10,6 +10,7 @@ SQLAlchemy
 torch
 torchvision
 scikit-learn
+pyiqa
 
 # Data & Image Handling
 numpy
@@ -25,3 +26,4 @@ umap-learn
 
 transformers
 accelerate
+opencv-python

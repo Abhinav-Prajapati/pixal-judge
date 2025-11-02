@@ -14,6 +14,8 @@ class ImageResponse(BaseModel):
     has_thumbnail: bool
     is_duplicate: bool = False
     message: str | None = None
+    quality_score: float | None = None
+    quality_metric: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
 class GroupAssociationResponse(BaseModel):
@@ -72,3 +74,17 @@ class Metadata(BaseModel):
     tags: Optional[Any] = None
     rating: Optional[int] = None
     model_config = ConfigDict(from_attributes=True)
+
+class ImageQualityRequest(BaseModel):
+    """Request model for quality analysis"""
+
+    image_ids: List[int]
+    metric: str = "brisque" 
+
+class ImageQualityResponse(BaseModel):
+    """Response with image quality score."""
+    image_id: int
+    quality_score: float
+    quality_metric: str
+    analyzed_at: datetime
+    file_name: str
