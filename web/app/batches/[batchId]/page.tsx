@@ -60,10 +60,32 @@ export default function BatchImagesPage() {
 	}
 	if (!batch) {
 		return (
-			<div className="p-4">
-				<h1 className="text-2xl font-bold mb-4">Batch {batchId}</h1>
-				<div className="flex items-center justify-center h-48 rounded-md bg-base-200">
-					<p className="text-base-content/60">This batch contains no images.</p>
+			<div className="flex flex-col h-full p-8">
+				<h1 className="text-2xl font-bold mb-6">Batch {batchId}</h1>
+				<div className="flex-grow flex items-center justify-center">
+					<div className="max-w-md w-full p-8 rounded-lg border-2 border-dashed border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50">
+						<div className="flex flex-col items-center space-y-4 text-neutral-500 dark:text-neutral-400">
+							<div className="p-4 rounded-full bg-neutral-100 dark:bg-neutral-700/50">
+								<svg
+									className="w-16 h-16"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									strokeWidth={1.5}
+								>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
+									/>
+								</svg>
+							</div>
+							<h2 className="text-xl font-semibold">Empty Batch</h2>
+							<p className="text-center text-sm">
+								This batch doesn't contain any images yet. You can add images to this batch by uploading them or importing from other batches.
+							</p>
+						</div>
+					</div>
 				</div>
 			</div>
 		);
