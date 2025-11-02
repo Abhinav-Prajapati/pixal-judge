@@ -56,18 +56,19 @@ class BatchGroupUpdate(BaseModel):
 
 class Metadata(BaseModel):
     """Schema for detailed image metadata."""
-    width: Optional[int]
-    height: Optional[int]
-    orientation: Optional[int]
-    shot_at: Optional[datetime]
-    latitude: Optional[float]
-    longitude: Optional[float]
-    camera_make: Optional[str]
-    camera_model: Optional[str]
-    focal_length: Optional[str]
-    f_number: Optional[float]
-    exposure_time: Optional[str]
-    iso: Optional[int]
-    caption: Optional[str]
-    tags: Optional[Any] 
-    rating: Optional[int]
+    width: Optional[int] = None
+    height: Optional[int] = None
+    orientation: Optional[int] = None
+    shot_at: Optional[datetime] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    camera_make: Optional[str] = None
+    camera_model: Optional[str] = None
+    focal_length: Optional[str] = None
+    f_number: Optional[float] = None
+    exposure_time: Optional[str] = None
+    iso: Optional[int] = None
+    caption: Optional[str] = None
+    tags: Optional[Any] = None
+    rating: Optional[int] = None
+    model_config = ConfigDict(from_attributes=True)
