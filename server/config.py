@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 # Load environment variables from a .env file
-load_dotenv()
+load_dotenv(".env.development")
 
 # Database connection URL for PostgreSQL.
 # Format: postgresql://user:password@host:port/dbname
