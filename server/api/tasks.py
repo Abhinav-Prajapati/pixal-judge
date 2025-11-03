@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from database.database import get_db
 from crud import crud_image
 from utils.file_handling import create_thumbnail
-from processing.feature_extraction import RESNET50, DINOV3
+from processing.feature_extraction import RESNET50, DINOV3, CLIP
 from processing.metadata_extraction import extract_exif_data
 
 logger = logging.getLogger(__name__)
@@ -77,7 +77,7 @@ def generate_embedding_task(image_id: int):
 
         if image.features is None:
             device = 'cuda' if torch.cuda.is_available() else 'cpu'
-            extractor = DINOV3(device=device)
+            extractor = CLIP(device=device)
             features = extractor.get_embedding(image.file_path)
             if features is not None:
                 image.features = features
