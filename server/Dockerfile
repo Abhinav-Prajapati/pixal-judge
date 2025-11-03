@@ -13,7 +13,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN mkdir -p assets/images assets/thumbnails cluster_plots
+# Storage directory will be mounted as volume
+# The startup script will create subdirectories based on STORAGE_ROOT env var
 
 EXPOSE 8000
 

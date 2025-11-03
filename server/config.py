@@ -18,12 +18,16 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 DB_SCHEMA = "image_clustering"
 
 # --- Path Configuration ---
-# Define the project's root directory to create robust, absolute paths.
-PROJECT_ROOT = Path(__file__).parent.resolve()
+# Allow configurable storage paths via environment variables
+STORAGE_ROOT = Path(os.getenv("STORAGE_ROOT", str(Path(__file__).parent.resolve())))
 
-# Define asset directories based on the project root.
-IMAGE_DIR = PROJECT_ROOT / "assets" / "images"
-THUMB_DIR = PROJECT_ROOT / "assets" / "thumbnails"
+# Define asset directories based on the storage root
+IMAGE_DIR = STORAGE_ROOT / "assets" / "images"
+THUMB_DIR = STORAGE_ROOT / "assets" / "thumbnails"
+
+# Create directories if they don't exist
+IMAGE_DIR.mkdir(parents=True, exist_ok=True)
+THUMB_DIR.mkdir(parents=True, exist_ok=True)
 
 SCALE = 150
 ASPECT_16x9 = 16 / 9
