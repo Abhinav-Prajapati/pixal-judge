@@ -8,6 +8,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
+    unoptimized: true, // Disable Next.js image optimization
     remotePatterns: [
       {
         protocol: 'http',
