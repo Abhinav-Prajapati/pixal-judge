@@ -19,12 +19,15 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
+      target: gpu  # Build GPU-enabled image by default
     container_name: pixsort_backend
     restart: always
+    runtime: nvidia  # Use nvidia runtime for GPU access
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-image_clustering}
       - STORAGE_ROOT=/app/data
       - PYTHONUNBUFFERED=1
+      - NVIDIA_VISIBLE_DEVICES=all
     ports:
       - "8000:8000"
     volumes:
