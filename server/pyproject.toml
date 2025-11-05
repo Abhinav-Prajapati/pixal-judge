@@ -1,0 +1,27 @@
+[project]
+name = "server"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "accelerate>=1.11.0",
+    "alembic>=1.17.1",
+    "fastapi>=0.121.0",
+    "hdbscan>=0.8.40",
+    "matplotlib>=3.10.7",
+    "numpy>=2.3.4",
+    "opencv-python>=4.11.0.86",
+    "pillow>=12.0.0",
+    "psycopg2-binary>=2.9.11",
+    "pyiqa>=0.1.13",
+    "python-dotenv>=1.2.1",
+    "python-multipart>=0.0.20",
+    "scikit-learn>=1.7.2",
+    "sqlalchemy>=2.0.44",
+    "torch>=2.9.0",
+    "torchvision>=0.24.0",
+    "transformers>=4.37.2",
+    "umap-learn>=0.5.9.post2",
+    "uvicorn[standard]>=0.38.0",
+]
