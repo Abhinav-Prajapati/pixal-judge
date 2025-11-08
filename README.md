@@ -24,6 +24,14 @@
 * **Frontend:** Next.js 15, TypeScript, HeroUI, TanStack Query
 * **Utility:** Docker Compose, Alembic (migrations), OpenAPI (auto-generated client)
 
+## License
+
+This project is licensed under the **GNU General Public License v3.0 (GPLv3)**.
+
+- **Permissions:** You are free to use, modify, and distribute this software. Commercial use is permitted.
+- **Conditions:** Any derivative works must also be licensed under GPLv3. You must disclose the source code of your modifications.
+- **Full License Text:** See the [LICENSE](LICENSE) file for the complete terms.
+
 ## Quick Start with Docker 🐳
 
 The easiest way to run PIXSORT is using Docker Compose:
