@@ -13,7 +13,7 @@ from src.images import crud as image_crud
 from src.images.models import Image
 from src.images import service as image_service
 from src.images.schemas import ImageResponse
-from processing.grouping import ImageGrouper
+from src.processing.clustering import ImageGrouper
 
 
 def create_new_batch(db: Session, name: str, image_ids: List[int]) -> ImageBatch:

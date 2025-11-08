@@ -12,8 +12,8 @@ from src.images import crud, schemas
 from src.images.models import Image
 from src.images.exceptions import ImageNotFound
 from utils.file_handling import save_uploaded_file, _calculate_file_hash, delete_image_files
-from processing.metadata_extraction import extract_exif_data
-from processing.quality_assessment import ImageQualityAnalyzer
+from src.processing.metadata import extract_exif_data
+from src.processing.quality import ImageQualityAnalyzer
 
 logger = logging.getLogger(__name__)
 
