@@ -12,7 +12,7 @@ from database import get_db
 from src.images import service, schemas
 from src.images.dependencies import get_image_or_404, validate_thumbnail_exists
 from src.images.models import Image
-from api.tasks import generate_thumbnail_task, generate_embedding_task
+from tasks import generate_thumbnail_task, generate_embedding_task
 from src.images.utils import get_file_response, queue_multiple_image_processing
 from config import THUMB_DIR
 

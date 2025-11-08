@@ -11,7 +11,7 @@ from src.batches.exceptions import BatchNotFound, BatchValidationError
 from src.batches.dependencies import get_batch_or_404
 from src.images.models import Image as ImageModel
 from src.images.utils import queue_multiple_image_processing
-from api.tasks import generate_thumbnail_task, generate_embedding_task
+from tasks import generate_thumbnail_task, generate_embedding_task
 
 
 router = APIRouter(prefix="/batches", tags=["Grouping Batches"])

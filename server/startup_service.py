@@ -3,7 +3,7 @@ import logging
 from sqlalchemy.orm import Session
 
 from src.images import crud
-from api.tasks import generate_thumbnail_task, generate_embedding_task
+from tasks import generate_thumbnail_task, generate_embedding_task
 
 logger = logging.getLogger(__name__)
 
