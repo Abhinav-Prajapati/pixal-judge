@@ -3,7 +3,9 @@ import threading
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from . import image_routes, cluster_routes
+from . import cluster_routes
+# from . import image_routes  # Old image routes - now using src.images.router
+from src.images.router import router as images_router  # New domain-based router
 from utils.file_handling import setup_directories
 from database.database import get_db
 from services.startup_service import process_missing_thumbnails, process_missing_embeddings
@@ -66,7 +68,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(image_routes.router)
+# Include routers - new domain-based structure
+app.include_router(images_router)  # New images router from src.images
 app.include_router(cluster_routes.router)
 
 @app.get("/", tags=["Root"])

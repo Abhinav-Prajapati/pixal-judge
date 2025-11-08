@@ -4,9 +4,11 @@ Manages the database connection and session.
 Provides a centralized way to interact with the database.
 """
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
 from config import DATABASE_URL, DB_SCHEMA
-from .models import Base
+
+# Define Base here to avoid circular imports
+Base = declarative_base()
 
 # The connect_args option sets the default search path to our custom schema.
 engine = create_engine(
