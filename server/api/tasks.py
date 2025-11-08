@@ -1,32 +1,26 @@
-"""
-Defines background tasks that run independently of the API request-response cycle.
-Each function handles a specific, long-running process for an image.
-"""
+"""Background tasks for image processing."""
 import logging
 import torch
 from sqlalchemy.orm import Session
 
 from database.database import get_db
-from crud import crud_image
+from src.images import crud
 from utils.file_handling import create_thumbnail
-from processing.feature_extraction import RESNET50, DINOV3, CLIP
-from processing.metadata_extraction import extract_exif_data
+from src.processing.features import RESNET50, DINOV3, CLIP
+from src.processing.metadata import extract_exif_data
 
 logger = logging.getLogger(__name__)
 
 def extract_metadata_task(image_id: int):
-    """
-    Background task to extract EXIF metadata from an image file and save it to the DB.
-    """
+    """Background task to extract EXIF metadata from an image file and save it to the DB."""
     logger.info(f"Metadata task started for image_id: {image_id}")
     db: Session = next(get_db())
     try:
-        image = crud_image.get(db, image_id=image_id)
+        image = crud.get(db, image_id=image_id)
         if not image:
             logger.error(f"Image with id {image_id} not found in metadata task.")
             return
 
-        # Only run if metadata seems missing (width is a good proxy)
         if image.width is None:
             metadata = extract_exif_data(image.file_path)
             if metadata:
@@ -41,20 +35,18 @@ def extract_metadata_task(image_id: int):
         db.close()
 
 def generate_thumbnail_task(image_id: int):
-    """
-    Background task to create a thumbnail for a given image.
-    """
+    """Background task to create a thumbnail for a given image."""
     logger.info(f"Thumbnail task started for image_id: {image_id}")
     db: Session = next(get_db())
     try:
-        image = crud_image.get(db, image_id=image_id)
+        image = crud.get(db, image_id=image_id)
         if not image:
             logger.error(f"Image with id {image_id} not found in thumbnail task.")
             return
 
         if not image.has_thumbnail:
             create_thumbnail(image)
-            db.commit() # The create_thumbnail function sets the flag, we just need to commit it.
+            db.commit()
             logger.info(f"Successfully created thumbnail for image_id: {image_id}")
 
     except Exception as e:
@@ -64,13 +56,11 @@ def generate_thumbnail_task(image_id: int):
         db.close()
 
 def generate_embedding_task(image_id: int):
-    """
-    Background task to generate feature embeddings for a given image.
-    """
+    """Background task to generate feature embeddings for a given image."""
     logger.info(f"Embedding task started for image_id: {image_id}")
     db: Session = next(get_db())
     try:
-        image = crud_image.get(db, image_id=image_id)
+        image = crud.get(db, image_id=image_id)
         if not image:
             logger.error(f"Image with id {image_id} not found in embedding task.")
             return

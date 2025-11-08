@@ -3,11 +3,12 @@ import threading
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+
 from src.images.router import router as images_router
 from src.batches.router import router as batches_router
 from utils.file_handling import setup_directories
 from database.database import get_db
-from services.startup_service import process_missing_thumbnails, process_missing_embeddings
+from api.startup_service import process_missing_thumbnails, process_missing_embeddings
 
 logging.basicConfig(
     level=logging.INFO,
@@ -39,20 +40,10 @@ def run_embedding_processing():
 
 @app.on_event("startup")
 async def startup_event():
-    """
-    This function runs when the application starts.
-    1. It ensures that the necessary asset directories exist.
-    2. It starts separate background threads for each startup processing task.
-    """
+    """Runs when the application starts. Sets up directories and processes missing assets."""
     logging.info("Running startup tasks...")
     setup_directories()
     logging.info("Asset directories are set up.")
-    
-    # thumbnail_thread = threading.Thread(target=run_thumbnail_processing)
-    # thumbnail_thread.start()
-    
-    # embedding_thread = threading.Thread(target=run_embedding_processing)
-    # embedding_thread.start()
 
 origins = [
     "http://localhost:5173",

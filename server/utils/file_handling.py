@@ -10,8 +10,7 @@ from pathlib import Path
 from fastapi import UploadFile
 from PIL import Image, ImageOps
 
-# Local application imports
-from database.models import Image as ImageModel
+from src.images.models import Image as ImageModel
 from config import IMAGE_DIR, THUMB_DIR, THUMB_SIZES
 
 logger = logging.getLogger(__name__)
