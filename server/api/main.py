@@ -3,9 +3,8 @@ import threading
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from . import cluster_routes
-# from . import image_routes  # Old image routes - now using src.images.router
-from src.images.router import router as images_router  # New domain-based router
+from src.images.router import router as images_router
+from src.batches.router import router as batches_router
 from utils.file_handling import setup_directories
 from database.database import get_db
 from services.startup_service import process_missing_thumbnails, process_missing_embeddings
@@ -49,11 +48,11 @@ async def startup_event():
     setup_directories()
     logging.info("Asset directories are set up.")
     
-    thumbnail_thread = threading.Thread(target=run_thumbnail_processing)
-    thumbnail_thread.start()
+    # thumbnail_thread = threading.Thread(target=run_thumbnail_processing)
+    # thumbnail_thread.start()
     
-    embedding_thread = threading.Thread(target=run_embedding_processing)
-    embedding_thread.start()
+    # embedding_thread = threading.Thread(target=run_embedding_processing)
+    # embedding_thread.start()
 
 origins = [
     "http://localhost:5173",
@@ -68,9 +67,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers - new domain-based structure
-app.include_router(images_router)  # New images router from src.images
-app.include_router(cluster_routes.router)
+# Include routers - domain-based architecture
+app.include_router(images_router)
+app.include_router(batches_router)
 
 @app.get("/", tags=["Root"])
 def read_root():

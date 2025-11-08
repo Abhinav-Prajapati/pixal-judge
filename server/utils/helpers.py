@@ -1,13 +1,15 @@
 from pathlib import Path
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, TYPE_CHECKING
 
 from crud import crud_image, crud_batch
 from src.images.models import Image
-from database.models import ImageBatch
 from src.images.exceptions import ImageNotFound
 from utils.exceptions import NotFoundError
+
+if TYPE_CHECKING:
+    from src.batches.models import ImageBatch
 
 def get_image_or_404(db: Session, image_id: int) -> Image:
     """
@@ -19,12 +21,13 @@ def get_image_or_404(db: Session, image_id: int) -> Image:
         raise ImageNotFound(image_id)
     return image
 
-def get_batch_or_404(db: Session, batch_id: int) -> ImageBatch:
-    """Get a batch by ID or raise 404 error."""
-    batch = crud_batch.get(db, batch_id=batch_id)
-    if not batch:
-        raise NotFoundError("Batch")
-    return batch
+def get_batch_or_404(db: Session, batch_id: int) -> "ImageBatch":
+    """
+    Get a batch by ID or raise 404 error.
+    Kept for backward compatibility - new code should use src.batches.dependencies.get_batch_or_404
+    """
+    from src.batches.dependencies import get_batch_or_404 as new_get_batch
+    return new_get_batch(db, batch_id)
 
 def get_file_response(file_path: Path, resource_name: str = "File") -> FileResponse:
     """
