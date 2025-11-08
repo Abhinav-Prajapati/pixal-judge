@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from pathlib import Path
 
-from database.database import get_db
+from database import get_db
 from src.images import service, schemas
 from src.images.dependencies import get_image_or_404, validate_thumbnail_exists
 from src.images.models import Image

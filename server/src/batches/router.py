@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, UploadFi
 from sqlalchemy.orm import Session
 from typing import List
 
-from database.database import get_db
+from database import get_db
 from src.batches import service, crud
 from src.batches.models import ImageBatch
 from src.batches.schemas import BatchCreate, BatchResponse, BatchRename, BatchAnalyze, BatchUpdateImages, BatchGroupUpdate

@@ -1,4 +1,3 @@
-# File: database/database.py
 """
 Manages the database connection and session.
 Provides a centralized way to interact with the database.

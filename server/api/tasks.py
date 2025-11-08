@@ -3,7 +3,7 @@ import logging
 import torch
 from sqlalchemy.orm import Session
 
-from database.database import get_db
+from database import get_db
 from src.images import crud
 from utils.file_handling import create_thumbnail
 from src.processing.features import RESNET50, DINOV3, CLIP

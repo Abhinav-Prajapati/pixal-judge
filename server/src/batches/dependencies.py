@@ -1,7 +1,7 @@
 """FastAPI dependencies for Batch domain."""
 from fastapi import Depends
 from sqlalchemy.orm import Session
-from database.database import get_db
+from database import get_db
 from src.batches import crud
 from src.batches.models import ImageBatch
 from src.batches.exceptions import BatchNotFound

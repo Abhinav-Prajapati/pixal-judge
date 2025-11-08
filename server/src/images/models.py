@@ -7,8 +7,13 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.sql import func
-from database.database import Base
+from typing import TYPE_CHECKING
+
+from database import Base
 from config import DB_SCHEMA
+
+if TYPE_CHECKING:
+    from src.batches.models import ImageBatchAssociation
 
 
 class Image(Base):

@@ -6,7 +6,7 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 from pathlib import Path
 
-from database.database import get_db
+from database import get_db
 from src.images import crud
 from src.images.models import Image
 from src.images.exceptions import ImageNotFound, ImageFileNotFound, ThumbnailNotFound

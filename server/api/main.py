@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from src.images.router import router as images_router
 from src.batches.router import router as batches_router
 from utils.file_handling import setup_directories
-from database.database import get_db
+from database import get_db
 from api.startup_service import process_missing_thumbnails, process_missing_embeddings
 
 logging.basicConfig(
