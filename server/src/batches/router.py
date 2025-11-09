@@ -1,5 +1,5 @@
 """API router for Batch domain."""
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -10,7 +10,7 @@ from src.batches.schemas import BatchCreate, BatchResponse, BatchRename, BatchAn
 from src.batches.exceptions import BatchNotFound, BatchValidationError
 from src.batches.dependencies import get_batch_or_404
 from src.images.models import Image as ImageModel
-from src.images.utils import queue_multiple_image_processing
+from src.images.utils import queue_image_tasks
 from tasks import generate_thumbnail_task, generate_embedding_task
 
 
@@ -74,7 +74,6 @@ def add_images_to_batch(batch_id: int, image_data: BatchUpdateImages, db: Sessio
 @router.post("/{batch_id}/upload-and-add", response_model=BatchResponse, operation_id="uploadAndAddImagesToBatch")
 def upload_and_add_to_batch(
     batch_id: int, 
-    background_tasks: BackgroundTasks, 
     db: Session = Depends(get_db), 
     files: List[UploadFile] = File(...)
 ):
@@ -82,7 +81,7 @@ def upload_and_add_to_batch(
     try:
         updated_batch, upload_results = service.upload_and_add(db, batch_id=batch_id, files=files)
         new_images = [res for res in upload_results if isinstance(res, ImageModel)]
-        queue_multiple_image_processing(background_tasks, new_images, generate_thumbnail_task, generate_embedding_task)
+        queue_image_tasks(new_images, generate_thumbnail_task, generate_embedding_task)
         return updated_batch
     except (BatchNotFound, BatchValidationError) as e:
         raise HTTPException(status_code=e.status_code, detail=str(e))
