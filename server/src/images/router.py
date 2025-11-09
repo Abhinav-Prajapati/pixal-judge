@@ -3,7 +3,7 @@ FastAPI router for Images domain.
 Defines all image-related API endpoints.
 """
 import logging
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from pathlib import Path
@@ -13,18 +13,16 @@ from src.images import service, schemas
 from src.images.dependencies import get_image_or_404, validate_thumbnail_exists
 from src.images.models import Image
 from tasks import generate_thumbnail_task, generate_embedding_task
-from src.images.utils import get_file_response, queue_multiple_image_processing
+from src.images.utils import get_file_response, queue_image_tasks
 from config import THUMB_DIR
 
 logger = logging.getLogger(__name__)
 
-# Create router with exact same prefix and tags as original
 router = APIRouter(prefix="/images", tags=["Images"])
 
 
 @router.post("/upload", response_model=List[schemas.ImageResponse], operation_id="uploadImages")
 def upload_images(
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     files: List[UploadFile] = File(...)
 ):
@@ -34,10 +32,8 @@ def upload_images(
     if not results:
         raise HTTPException(status_code=400, detail="No images were processed successfully.")
     
-    # Queue background tasks for new images only
     new_images = [res for res in results if isinstance(res, Image)]
-    queue_multiple_image_processing(
-        background_tasks,
+    queue_image_tasks(
         new_images,
         generate_thumbnail_task,
         generate_embedding_task
