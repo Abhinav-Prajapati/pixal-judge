@@ -17,6 +17,19 @@ logger = logging.getLogger(__name__)
 celery_app = Celery('tasks', broker=CELERY_BROKER_URL)
 celery_app.conf.update(**CELERY_TASK_CONFIG)
 
+# Global model cache - loaded once per worker process
+_clip_model_cache = None
+
+def get_clip_model():
+    """Get or initialize the CLIP model (singleton per worker process)."""
+    global _clip_model_cache
+    if _clip_model_cache is None:
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        logger.info(f"Loading CLIP model on device: {device}")
+        _clip_model_cache = CLIP(device=device)
+        logger.info("CLIP model loaded and cached")
+    return _clip_model_cache
+
 @celery_app.task(bind=True, max_retries=3)
 def extract_metadata_task(self, image_id: int):
     logger.info(f"Metadata task started for image_id: {image_id}")
@@ -73,8 +86,7 @@ def generate_embedding_task(self, image_id: int):
             return
 
         if image.features is None:
-            device = 'cuda' if torch.cuda.is_available() else 'cpu'
-            extractor = CLIP(device=device)
+            extractor = get_clip_model()
             features = extractor.get_embedding(image.file_path)
             if features is not None:
                 image.features = features

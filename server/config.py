@@ -22,7 +22,7 @@ CELERY_TASK_CONFIG = {
     "timezone": "UTC",
     "enable_utc": True,
     "worker_prefetch_multiplier": 1,
-    "worker_max_tasks_per_child": 10,
+    "worker_max_tasks_per_child": 50,
 }
 
 DB_SCHEMA = "image_clustering"
