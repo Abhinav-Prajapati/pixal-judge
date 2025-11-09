@@ -1,4 +1,3 @@
-# File: config.py
 """
 Stores configuration variables for the application.
 Centralizes settings for easy modification.
@@ -7,25 +6,32 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 
-# Load environment variables from a .env file
 load_dotenv(".env.development")
 
-# Database connection URL for PostgreSQL.
-# Format: postgresql://user:password@host:port/dbname
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# The custom schema name in the PostgreSQL database.
+RABBITMQ_USER = os.getenv("RABBITMQ_USER", "user")
+RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD", "password")
+RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
+CELERY_BROKER_URL = f"amqp://{RABBITMQ_USER}:{RABBITMQ_PASSWORD}@{RABBITMQ_HOST}:5672/"
+
+CELERY_TASK_CONFIG = {
+    "task_serializer": "json",
+    "accept_content": ["json"],
+    "result_serializer": "json",
+    "timezone": "UTC",
+    "enable_utc": True,
+    "worker_prefetch_multiplier": 1,
+    "worker_max_tasks_per_child": 10,
+}
+
 DB_SCHEMA = "image_clustering"
 
-# --- Path Configuration ---
-# Allow configurable storage paths via environment variables
 STORAGE_ROOT = Path(os.getenv("STORAGE_ROOT", str(Path(__file__).parent.resolve())))
 
-# Define asset directories based on the storage root
 IMAGE_DIR = STORAGE_ROOT / "assets" / "images"
 THUMB_DIR = STORAGE_ROOT / "assets" / "thumbnails"
 
-# Create directories if they don't exist
 IMAGE_DIR.mkdir(parents=True, exist_ok=True)
 THUMB_DIR.mkdir(parents=True, exist_ok=True)
 
