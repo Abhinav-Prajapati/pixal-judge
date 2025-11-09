@@ -1,8 +1,9 @@
 import logging
-import threading
-from fastapi import FastAPI
+import shutil
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 from src.images.router import router as images_router
 from src.batches.router import router as batches_router
@@ -10,6 +11,7 @@ from src.images import crud as images_crud
 from utils.file_handling import setup_directories
 from database import get_db
 from tasks import generate_thumbnail_task, generate_embedding_task
+from config import IMAGE_DIR, THUMB_DIR, DB_SCHEMA
 
 logging.basicConfig(
     level=logging.INFO,
@@ -26,62 +28,34 @@ app = FastAPI(
 )
 
 
-def process_missing_thumbnails(db: Session):
-    """Finds all images without a thumbnail and queues a generation task for each."""
-    logger.info("Startup service: Searching for images with missing thumbnails...")
+def process_missing_assets(db: Session):
+    """Queue Celery tasks for missing thumbnails and embeddings."""
+    logger.info("Startup: Checking for missing thumbnails and embeddings...")
     
-    images_to_process = images_crud.get_without_thumbnails(db)
+    images_without_thumbnails = images_crud.get_without_thumbnails(db)
+    images_without_embeddings = images_crud.get_without_embeddings(db)
     
-    if not images_to_process:
-        logger.info("Startup service: All images have thumbnails.")
-        return
-
-    for image in images_to_process:
-        logger.info(f"Startup service: Queuing thumbnail task for image_id: {image.id}")
-        generate_thumbnail_task(image.id)
+    for image in images_without_thumbnails:
+        generate_thumbnail_task.delay(image.id)
+        
+    for image in images_without_embeddings:
+        generate_embedding_task.delay(image.id)
             
-    logger.info(f"Startup service: Queued {len(images_to_process)} thumbnail generation tasks.")
+    logger.info(f"Startup: Queued {len(images_without_thumbnails)} thumbnail tasks, {len(images_without_embeddings)} embedding tasks")
 
-
-def process_missing_embeddings(db: Session):
-    """Finds all images without feature embeddings and queues a generation task for each."""
-    logger.info("Startup service: Searching for images with missing embeddings...")
-
-    images_to_process = images_crud.get_without_embeddings(db)
-
-    if not images_to_process:
-        logger.info("Startup service: All images have embeddings.")
-        return
-
-    for image in images_to_process:
-        logger.info(f"Startup service: Queuing embedding task for image_id: {image.id}")
-        generate_embedding_task(image.id)
-            
-    logger.info(f"Startup service: Queued {len(images_to_process)} embedding generation tasks.")
-
-
-def run_thumbnail_processing():
-    """Wrapper function to get a DB session and process missing thumbnails."""
-    db: Session = next(get_db())
-    try:
-        process_missing_thumbnails(db)
-    finally:
-        db.close()
-
-def run_embedding_processing():
-    """Wrapper function to get a DB session and process missing embeddings."""
-    db: Session = next(get_db())
-    try:
-        process_missing_embeddings(db)
-    finally:
-        db.close()
 
 @app.on_event("startup")
 async def startup_event():
-    """Runs when the application starts. Sets up directories and processes missing assets."""
-    logging.info("Running startup tasks...")
+    """Runs when the application starts."""
+    logger.info("Running startup tasks...")
     setup_directories()
-    logging.info("Asset directories are set up.")
+    logger.info("Asset directories are set up.")
+    
+    db: Session = next(get_db())
+    try:
+        process_missing_assets(db)
+    finally:
+        db.close()
 
 origins = [
     "http://localhost:5173",
@@ -96,11 +70,57 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers - domain-based architecture
 app.include_router(images_router)
 app.include_router(batches_router)
 
 @app.get("/", tags=["Root"])
 def read_root():
-    """A simple health check endpoint."""
     return {"message": "Welcome to the Image Clustering API!"}
+
+
+@app.delete("/admin/truncate-all", tags=["Admin"])
+def truncate_all_data(db: Session = Depends(get_db)):
+    """
+    DANGER: Truncate all data from database tables and delete all uploaded files.
+    Keeps table structure intact. USE WITH CAUTION!
+    """
+    try:
+        logger.warning("Truncating all database tables and deleting all files...")
+        
+        # Truncate tables in correct order (child tables first to avoid FK constraints)
+        db.execute(text(f"TRUNCATE TABLE {DB_SCHEMA}.image_batch_association CASCADE"))
+        db.execute(text(f"TRUNCATE TABLE {DB_SCHEMA}.image_batches CASCADE"))
+        db.execute(text(f"TRUNCATE TABLE {DB_SCHEMA}.images CASCADE"))
+        db.commit()
+        
+        # Delete all image files
+        deleted_images = 0
+        deleted_thumbnails = 0
+        
+        if IMAGE_DIR.exists():
+            for file in IMAGE_DIR.glob("*"):
+                if file.is_file():
+                    file.unlink()
+                    deleted_images += 1
+        
+        if THUMB_DIR.exists():
+            for file in THUMB_DIR.glob("*"):
+                if file.is_file():
+                    file.unlink()
+                    deleted_thumbnails += 1
+        
+        logger.warning(f"Truncated all tables. Deleted {deleted_images} images and {deleted_thumbnails} thumbnails.")
+        
+        return {
+            "message": "All data truncated successfully",
+            "tables_truncated": ["images", "image_batches", "image_batch_association"],
+            "files_deleted": {
+                "images": deleted_images,
+                "thumbnails": deleted_thumbnails
+            }
+        }
+    
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error truncating data: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to truncate data: {str(e)}")
